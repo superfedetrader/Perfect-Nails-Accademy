@@ -311,14 +311,14 @@
   .op-pill[data-op="Maria"] .d{ background:var(--gold-soft); }
   .op-pill[data-op="Karla"] .d{ background:var(--teal); }
 
-  .bl-dot{ display:inline-flex; align-items:center; justify-content:center; width:16px; height:16px; border-radius:50%;
-    background:var(--onyx); border:1.5px solid var(--danger); font-size:0.6rem; margin-left:6px; cursor:help; vertical-align:middle; }
-  .bl-badge{ display:inline-flex; align-items:center; gap:5px; font-size:0.68rem; font-weight:800; padding:3px 10px;
-    border-radius:999px; background:var(--onyx); border:1px solid var(--danger); color:var(--danger); }
-  .client-card.blacklisted{ border-color:rgba(255,123,144,0.5); }
   .client-card .avatar-wrap{ position:relative; display:inline-block; }
-  .client-card .bl-corner{ position:absolute; top:-3px; right:-3px; width:16px; height:16px; border-radius:50%;
-    background:var(--onyx); border:2px solid #1b1e33; display:flex; align-items:center; justify-content:center; }
+
+  .firma-pad-wrap{ border:1px solid var(--glass-brd); border-radius:10px; overflow:hidden; touch-action:none; margin:6px 0; display:inline-block; max-width:100%; }
+  .firma-pad-wrap canvas{ display:block; width:100%; max-width:420px; height:130px; cursor:crosshair; }
+  .firma-block label{ display:block; margin-bottom:4px; }
+  .firma-preview-wrap{ margin:2px 0 10px; }
+  .firma-preview{ max-width:260px; width:100%; border-radius:8px; border:1px solid var(--glass-brd); display:block; margin-top:4px; }
+  .btn-sm{ font-size:0.72rem; padding:6px 12px; margin-top:6px; }
 
   .prom{ font-size:0.68rem; padding:3px 9px; border-radius:999px; cursor:pointer; border:1px solid var(--line); background:none; color:var(--grey-dim); white-space:nowrap; }
   .prom.inviato{ border-color:var(--ok); color:var(--ok); }
@@ -577,7 +577,6 @@
         <div class="stat-mini"><span class="label">Clienti</span><span class="value" id="stat-clienti">0</span></div>
         <div class="stat-mini"><span class="label">Promemoria</span><span class="value" id="stat-prom">0</span></div>
         <div class="stat-mini"><span class="label">Top servizio</span><span class="value" id="stat-top">—</span></div>
-        <div class="stat-mini danger"><span class="label">⚫ Lista nera</span><span class="value" id="stat-blacklist">0</span></div>
       </div>
     </header>
 
@@ -704,6 +703,11 @@
             <div><label>Consenso promozioni</label><select id="cl-promo"><option>Sì</option><option>No</option></select></div>
             <div><label>Consenso foto</label><select id="cl-foto"><option>Sì</option><option>No</option></select></div>
           </div>
+          <div class="firma-block" style="margin-top:12px;">
+            <label>✍️ Firma cliente per consenso al trattamento dati</label>
+            <div class="firma-pad-wrap"><canvas id="cl-firma" width="500" height="150"></canvas></div>
+            <div><button type="button" class="btn ghost btn-sm" id="cl-firma-clear">🧹 Cancella firma</button></div>
+          </div>
 
           <div class="grid-form wide" style="margin-top:14px;">
             <div><label>Note extra</label><textarea id="cl-note" placeholder="Qualsiasi altro dettaglio utile…"></textarea></div>
@@ -716,9 +720,6 @@
         <h2><span class="dot"></span> Le tue clienti</h2>
         <div class="toolbar">
           <input type="text" id="cl-search" placeholder="🔍 Cerca nome, cognome o telefono">
-          <label style="display:flex; align-items:center; gap:6px; text-transform:none; font-size:0.82rem; color:var(--grey); cursor:pointer; margin:0;">
-            <input type="checkbox" id="cl-filter-blacklist" style="width:auto;"> ⚫ Solo lista nera
-          </label>
           <span class="count" id="cl-count"></span>
         </div>
         <div class="client-grid" id="cl-grid"></div>
@@ -917,15 +918,15 @@ let clienti = [
   {nome:'Maria', cognome:'Rossi', nascita:'1990-05-12', tel:'333 1234567', email:'maria.rossi@email.it', fonte:'Instagram',
    personalita:'Solare, chiacchierona, ama i dettagli', colore:'Rosa cipria', forma:'Squadrata', smalltalk:'Viaggi, cani',
    allergie:'Nessuna nota', salute:'—', consenso:'Sì', promo:'Sì', foto:'Sì', note:'Cliente abituale, porta sempre un\'amica',
-   lateCancellations:0, shortNotice:0, blacklisted:false},
+   lateCancellations:0, shortNotice:0},
   {nome:'Giulia', cognome:'Bianchi', nascita:'1995-11-03', tel:'347 7654321', email:'', fonte:'Passaparola',
    personalita:'Riservata, precisa', colore:'Rosso classico', forma:'Mandorla', smalltalk:'Lavoro, serie tv',
    allergie:'Sensibile ad alcuni solventi', salute:'—', consenso:'Sì', promo:'No', foto:'No', note:'',
-   lateCancellations:0, shortNotice:0, blacklisted:false},
+   lateCancellations:0, shortNotice:0},
   {nome:'Elisa', cognome:'Conti', nascita:'1998-02-20', tel:'333 5551122', email:'', fonte:'Instagram',
    personalita:'Simpatica ma spesso in ritardo', colore:'Nude', forma:'Ballerina', smalltalk:'—',
    allergie:'—', salute:'—', consenso:'Sì', promo:'Sì', foto:'No', note:'Ha disdetto con 3 ore di preavviso il 06/08.',
-   lateCancellations:1, shortNotice:0, blacklisted:true},
+   lateCancellations:1, shortNotice:0},
 ];
 
 // -------- id stabili --------
@@ -949,7 +950,7 @@ const trovaClientePerTel = tel => clienti.find(c => c.tel && tel && c.tel.replac
 let currentOpFilter = '';
 let currentView = 'lista';
 
-// -------- lista nera --------
+// -------- disdette e affidabilità --------
 function registraDisdetta(appt){
   if(!appt.data || !appt.ora) return;
   const apptDT = new Date(appt.data+'T'+appt.ora);
@@ -966,15 +967,14 @@ function registraDisdetta(appt){
   if(cliente){
     if(severity==='severe'){
       cliente.lateCancellations = (cliente.lateCancellations||0) + 1;
-      cliente.blacklisted = true;
-      showFlash(`${cliente.nome} ${cliente.cognome} inserita automaticamente in LISTA NERA — disdetta con ${oreTxt} (sotto le 24h)`);
+      showFlash(`${cliente.nome} ${cliente.cognome} — disdetta con ${oreTxt} (sotto le 24h)`);
     } else {
       cliente.shortNotice = (cliente.shortNotice||0) + 1;
       showToast(`⚠️ Preavviso breve registrato per ${cliente.nome} ${cliente.cognome} (${oreTxt})`, 'warn');
     }
     renderClienti();
   } else {
-    showToast(severity==='severe' ? `⚫ Disdetta last-minute registrata (${oreTxt}) — nessuna scheda cliente collegata a questo numero` : `⚠️ Preavviso breve registrato (${oreTxt})`, severity==='severe'?'danger':'warn');
+    showToast(severity==='severe' ? `Disdetta last-minute registrata (${oreTxt}) — nessuna scheda cliente collegata a questo numero` : `⚠️ Preavviso breve registrato (${oreTxt})`, severity==='severe'?'danger':'warn');
   }
 }
 
@@ -1031,14 +1031,12 @@ function renderAgenda(){
       dg.innerHTML = `<div class="day-head">${dayLabel} <span class="cnt">${dayItems.length} appuntamento/i</span></div>`;
       dayItems.forEach(a=>{
         const realIdx = appuntamenti.indexOf(a);
-        const cliente = trovaClientePerTel(a.tel);
-        const blDot = cliente && cliente.blacklisted ? `<span class="bl-dot" title="Lista nera: disdette last-minute">⚫</span>` : '';
         const row = document.createElement('div');
         row.className='appt-row';
         row.style.borderLeft = `3px solid ${opColor(a.operatrice)}`;
         row.innerHTML = `
           <div class="appt-time">${a.ora}<small style="color:${opColor(a.operatrice)}">${a.operatrice||'—'}</small></div>
-          <div class="appt-client"><b>${a.nome} ${a.cognome}</b>${blDot}${a.note?`<div class="note">${a.note}</div>`:''}</div>
+          <div class="appt-client"><b>${a.nome} ${a.cognome}</b>${a.note?`<div class="note">${a.note}</div>`:''}</div>
           <div class="appt-tel">📞 ${a.tel}</div>
           <div class="appt-serv">${a.servizio}</div>
           <div class="prom-wrap">
@@ -1225,11 +1223,9 @@ function renderGiorno(){
       if(startMin < -dur || startMin > totalMin) return '';
       const top = Math.max(startMin,0)*pxPerMin;
       const height = Math.max(dur*pxPerMin, 24);
-      const cliente = trovaClientePerTel(a.tel);
-      const blDot = cliente && cliente.blacklisted ? ' ⚫' : '';
       return `<div class="dt-block offlimits ${operatrice==='Karla'?'op-karla':''} ${height<38?'dt-short':''}"
           style="top:${top}px; height:${height}px;" data-edit="${realIdx}" title="Offlimits: ${a.nome} ${a.cognome} — ${a.servizio}">
-        <b>🔒 ${a.ora} · ${a.nome} ${a.cognome}${blDot}</b><div class="dt-meta">${a.servizio} · ${dur} min</div>
+        <b>🔒 ${a.ora} · ${a.nome} ${a.cognome}</b><div class="dt-meta">${a.servizio} · ${dur} min</div>
       </div>`;
     }).join('');
   };
@@ -1449,26 +1445,22 @@ function openApptModal(idx){
 // -------- render clienti --------
 function renderClienti(){
   const q = document.getElementById('cl-search').value.trim().toLowerCase();
-  const onlyBl = document.getElementById('cl-filter-blacklist').checked;
   const grid = document.getElementById('cl-grid');
   grid.innerHTML = '';
   const filtered = clienti
     .filter(c => !q || (c.nome+' '+c.cognome+' '+c.tel).toLowerCase().includes(q))
-    .filter(c => !onlyBl || c.blacklisted)
     .sort((a,b)=> (a.nome+a.cognome).localeCompare(b.nome+b.cognome));
   filtered.forEach((c)=>{
     const realIdx = clienti.indexOf(c);
     const div = document.createElement('div');
-    div.className='client-card' + (c.blacklisted ? ' blacklisted' : '');
+    div.className='client-card';
     div.innerHTML = `
       <div class="avatar-wrap">
         <div class="avatar">${initials(c)}</div>
-        ${c.blacklisted ? '<div class="bl-corner" title="Lista nera">⚫</div>' : ''}
       </div>
       <h3>${c.nome} ${c.cognome}</h3>
       <div class="sub">📞 ${c.tel}</div>
       <span class="chip">${c.colore||'—'}</span><span class="chip">${c.forma||'—'}</span>
-      ${c.blacklisted ? '<div style="margin-top:8px;"><span class="bl-badge">⚫ Lista nera</span></div>' : ''}
     `;
     div.addEventListener('click', ()=> openModal(realIdx));
     grid.appendChild(div);
@@ -1477,7 +1469,6 @@ function renderClienti(){
   document.getElementById('cl-count').textContent = `${filtered.length} cliente/i`;
   document.getElementById('nav-count-clienti').textContent = clienti.length;
 }
-document.getElementById('cl-filter-blacklist').addEventListener('change', renderClienti);
 
 const CLIENT_FIELDS = [
   ['nome','Nome','text'], ['cognome','Cognome','text'], ['nascita','Data di nascita','date'], ['tel','Telefono','tel'],
@@ -1587,11 +1578,14 @@ function renderTrattamentiHTML(idx){
 function openTrattamentoForm(idx){
   const modal = document.getElementById('modal-content');
   const oggi = isoDate(new Date());
+  const oraOra = new Date().toTimeString().slice(0,5);
   modal.innerHTML = `
     <button class="modal-close" id="modal-close">✕</button>
     <h3>🧾 Nuovo trattamento</h3>
     <div class="grid-form wide">
       <div><label>Data</label><input type="date" id="tr-data" value="${oggi}"></div>
+      <div><label>Ora</label><input type="time" id="tr-ora" value="${oraOra}"></div>
+      <div><label>Operatrice</label><select id="tr-operatrice"><option value="Maria">Maria</option><option value="Karla">Karla</option></select></div>
       <div><label>Servizio</label><select id="tr-servizio">${SERVIZI.map(s=>`<option>${s}</option>`).join('')}</select></div>
       <div><label>Punta fresa / preparazione</label><input type="text" id="tr-fresa" placeholder="Es. fresa conica media"></div>
       <div><label>Base &amp; costruttore</label><input type="text" id="tr-base" placeholder="Es. Base rinforzante Marca X"></div>
@@ -1602,6 +1596,9 @@ function openTrattamentoForm(idx){
       <div><label>Nail art / dettagli extra</label><input type="text" id="tr-art" placeholder="Es. french sottile su anulare"></div>
       <div><label>Note</label><input type="text" id="tr-note"></div>
     </div>
+    <label style="display:flex; align-items:center; gap:6px; text-transform:none; font-size:0.82rem; color:var(--grey); cursor:pointer; margin:10px 0 0;">
+      <input type="checkbox" id="tr-in-agenda" checked style="width:auto;"> 📅 Aggiungi anche in agenda (con data e ora indicate)
+    </label>
     <div class="btn-row">
       <button class="btn ghost" id="tr-cancel">Annulla</button>
       <button class="btn" id="tr-save">💾 Salva trattamento</button>
@@ -1613,18 +1610,41 @@ function openTrattamentoForm(idx){
     const c = clienti[idx];
     if(!c.trattamenti) c.trattamenti = [];
     const data = document.getElementById('tr-data').value || oggi;
+    const ora = document.getElementById('tr-ora').value || oraOra;
+    const operatrice = document.getElementById('tr-operatrice').value;
+    const servizio = document.getElementById('tr-servizio').value;
+    const noteTr = document.getElementById('tr-note').value;
+    const inAgenda = document.getElementById('tr-in-agenda').checked;
     c.trattamenti.push({
-      data, servizio: document.getElementById('tr-servizio').value,
+      data, servizio,
       puntaFresa: document.getElementById('tr-fresa').value, base: document.getElementById('tr-base').value,
       colore: document.getElementById('tr-colore').value, topCoat: document.getElementById('tr-topcoat').value,
-      nailArt: document.getElementById('tr-art').value, note: document.getElementById('tr-note').value,
+      nailArt: document.getElementById('tr-art').value, note: noteTr,
     });
     const latest = c.trattamenti.slice().sort((a,b)=> b.data.localeCompare(a.data))[0];
     c.prossimoRefill = refillSuggerito(latest.data);
+    let msg = 'Trattamento registrato', tipo = 'ok';
+    if(inAgenda && data && ora){
+      const conflitto = trovaConflitto(data, ora, operatrice, servizio);
+      appuntamenti.push({
+        id: genId(), data, ora, operatrice, servizio,
+        nome: c.nome, cognome: c.cognome, tel: c.tel, note: noteTr,
+        prom3:'Non necessario', prom1:'Non necessario', stato:'Confermato',
+      });
+      assicuraId(appuntamenti);
+      renderAgenda();
+      if(conflitto){
+        msg = `Trattamento registrato e aggiunto in agenda — attenzione, ${operatrice} risultava già impegnata a quell'ora con ${conflitto.nome} ${conflitto.cognome}`;
+        tipo = 'warn';
+      } else {
+        msg = 'Trattamento registrato e aggiunto in agenda';
+      }
+    }
+    updateStats();
     renderOggi();
     salvaAgenda();
     openModal(idx,false);
-    showToast('Trattamento registrato', 'ok');
+    showToast(msg, tipo);
   });
 }
 
@@ -1635,7 +1655,7 @@ function openModal(idx, edit=false){
     activeNailKey = null;
     modal.innerHTML = `
       <button class="modal-close" id="modal-close">✕</button>
-      <h3>${c.nome} ${c.cognome} ${c.blacklisted?'<span class="bl-badge" style="margin-left:8px;">⚫ Lista nera</span>':''}</h3>
+      <h3>${c.nome} ${c.cognome}</h3>
       <div class="section-title">Anagrafica &amp; contatti</div>
       <div class="kv"><b>Data di nascita</b><span>${fmtData(c.nascita)||'—'}</span></div>
       <div class="kv"><b>Telefono</b><span>${c.tel}</span></div>
@@ -1656,16 +1676,15 @@ function openModal(idx, edit=false){
       <div class="section-title">Affidabilità</div>
       <div class="kv"><b>Disdette last-minute (&lt;24h)</b><span>${c.lateCancellations||0}</span></div>
       <div class="kv"><b>Disdette con preavviso breve</b><span>${c.shortNotice||0}</span></div>
-      <div class="kv"><b>Lista nera</b><span>${c.blacklisted ? '⚫ Sì' : 'No'}</span></div>
       <div class="section-title">Privacy</div>
       <div class="kv"><b>Consenso dati</b><span>${c.consenso}</span></div>
       <div class="kv"><b>Consenso promo</b><span>${c.promo}</span></div>
       <div class="kv"><b>Consenso foto</b><span>${c.foto}</span></div>
+      ${c.firmaConsenso ? `<div class="firma-preview-wrap"><b>Firma consenso dati</b><img src="${c.firmaConsenso}" class="firma-preview" alt="Firma cliente"></div>` : ''}
       <div class="section-title">Note</div>
       <div class="kv"><span>${c.note||'—'}</span></div>
       <div class="btn-row">
         <button class="btn ghost" id="modal-del">🗑️ Elimina</button>
-        <button class="btn ghost" id="modal-toggle-bl">${c.blacklisted ? '✅ Togli dalla lista nera' : '⚫ Metti in lista nera'}</button>
         <button class="btn" id="modal-edit">✏️ Modifica</button>
       </div>
     `;
@@ -1675,22 +1694,6 @@ function openModal(idx, edit=false){
         clienti.splice(idx,1); closeModal(); renderClienti(); updateStats(); renderOggi(); salvaAgenda();
         showToast('Scheda cliente eliminata', 'ok');
       });
-    });
-    document.getElementById('modal-toggle-bl').addEventListener('click', ()=>{
-      if(c.blacklisted){
-        c.blacklisted = false;
-        renderClienti(); updateStats(); salvaAgenda();
-        openModal(idx, false);
-        showToast(`${c.nome} ${c.cognome} tolta dalla lista nera`, 'ok');
-      } else {
-        confirmAction('Mettere in lista nera?', `${c.nome} ${c.cognome} verrà segnata manualmente in lista nera, a prescindere dallo storico disdette.`, ()=>{
-          c.blacklisted = true;
-          renderClienti(); updateStats(); salvaAgenda();
-          document.getElementById('modal-bg').classList.add('active');
-          openModal(idx, false);
-          showToast(`${c.nome} ${c.cognome} messa in lista nera`, 'danger');
-        }, 'Sì, metti in lista nera', true);
-      }
     });
     attachNailMapHandlers(idx);
     document.getElementById('btn-add-treat').addEventListener('click', ()=> openTrattamentoForm(idx));
@@ -1707,17 +1710,26 @@ function openModal(idx, edit=false){
         <div><label>Consenso promo</label><select id="em-cl-promo">${['Sì','No'].map(v=>`<option ${v===c.promo?'selected':''}>${v}</option>`).join('')}</select></div>
         <div><label>Consenso foto</label><select id="em-cl-foto">${['Sì','No'].map(v=>`<option ${v===c.foto?'selected':''}>${v}</option>`).join('')}</select></div>
       </div>
+      <div class="firma-block" style="margin-top:12px;">
+        <label>✍️ Firma cliente per consenso al trattamento dati${c.firmaConsenso ? ' (già presente — disegna per sostituirla)' : ''}</label>
+        <div class="firma-pad-wrap"><canvas id="em-cl-firma" width="500" height="150"></canvas></div>
+        <div><button type="button" class="btn ghost btn-sm" id="em-cl-firma-clear">🧹 Cancella firma</button></div>
+      </div>
       <div class="btn-row">
         <button class="btn ghost" id="em-cl-cancel">Annulla</button>
         <button class="btn" id="em-cl-save">💾 Salva modifiche</button>
       </div>
     `;
+    const emFirmaPad = setupFirmaPad(document.getElementById('em-cl-firma'));
+    if(c.firmaConsenso) emFirmaPad.loadExisting(c.firmaConsenso);
+    document.getElementById('em-cl-firma-clear').addEventListener('click', ()=> emFirmaPad.clearPad());
     document.getElementById('em-cl-cancel').addEventListener('click', ()=> openModal(idx,false));
     document.getElementById('em-cl-save').addEventListener('click', ()=>{
       CLIENT_FIELDS.forEach(([key])=>{ c[key] = document.getElementById('em-cl-'+key).value; });
       c.consenso = document.getElementById('em-cl-consenso').value;
       c.promo = document.getElementById('em-cl-promo').value;
       c.foto = document.getElementById('em-cl-foto').value;
+      c.firmaConsenso = emFirmaPad.resultFor(c.firmaConsenso);
       closeModal(); renderClienti(); updateStats(); renderOggi(); salvaAgenda();
       showToast('Scheda cliente aggiornata', 'ok');
     });
@@ -1725,6 +1737,54 @@ function openModal(idx, edit=false){
   document.getElementById('modal-bg').classList.add('active');
   document.getElementById('modal-close').addEventListener('click', closeModal);
 }
+
+// -------- firma per consenso dati: pad disegnabile a mouse/touch/pen (Pointer Events) --------
+// Sfondo "carta" chiaro disegnato subito per dare l'idea di un vero foglietto firmato, a prescindere dal tema scuro
+// dell'app tutt'intorno — così la firma resta leggibile ovunque venga mostrata (scheda cliente, eventuale export).
+function setupFirmaPad(canvas){
+  const ctx = canvas.getContext('2d');
+  const paintBg = ()=>{ ctx.fillStyle = 'rgba(250,247,240,0.96)'; ctx.fillRect(0,0,canvas.width,canvas.height); };
+  paintBg();
+  ctx.strokeStyle = '#20203a';
+  ctx.lineWidth = 2.4;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  let drawing = false, last = null, touched = false, cleared = false;
+  const pos = e=>{
+    const r = canvas.getBoundingClientRect();
+    return { x: (e.clientX - r.left) * (canvas.width / r.width), y: (e.clientY - r.top) * (canvas.height / r.height) };
+  };
+  const start = e=>{ drawing = true; touched = true; cleared = false; last = pos(e); e.preventDefault(); };
+  const move = e=>{
+    if(!drawing) return;
+    const p = pos(e);
+    ctx.beginPath(); ctx.moveTo(last.x, last.y); ctx.lineTo(p.x, p.y); ctx.stroke();
+    last = p; e.preventDefault();
+  };
+  const end = ()=>{ drawing = false; };
+  canvas.addEventListener('pointerdown', start);
+  canvas.addEventListener('pointermove', move);
+  canvas.addEventListener('pointerup', end);
+  canvas.addEventListener('pointerleave', end);
+  return {
+    clearPad(){ paintBg(); touched = false; cleared = true; },
+    loadExisting(url){
+      if(!url) return;
+      const img = new Image();
+      img.onload = ()=>{ ctx.drawImage(img, 0, 0, canvas.width, canvas.height); };
+      img.src = url;
+    },
+    // touched → è stata disegnata una firma nuova, ha priorità; cleared → l'utente ha premuto "cancella" senza
+    // ridisegnare, quindi si salva vuoto; altrimenti (né toccata né cancellata) si preserva il valore esistente.
+    resultFor(existing){
+      if(touched) return canvas.toDataURL('image/png');
+      if(cleared) return '';
+      return existing || '';
+    },
+  };
+}
+const clFirmaPad = setupFirmaPad(document.getElementById('cl-firma'));
+document.getElementById('cl-firma-clear').addEventListener('click', ()=> clFirmaPad.clearPad());
 
 document.getElementById('form-cliente').addEventListener('submit', e=>{
   e.preventDefault();
@@ -1745,11 +1805,13 @@ document.getElementById('form-cliente').addEventListener('submit', e=>{
     consenso: document.getElementById('cl-consenso').value,
     promo: document.getElementById('cl-promo').value,
     foto: document.getElementById('cl-foto').value,
+    firmaConsenso: clFirmaPad.resultFor(''),
     note: document.getElementById('cl-note').value,
-    lateCancellations: 0, shortNotice: 0, blacklisted: false,
+    lateCancellations: 0, shortNotice: 0,
     unghie: defaultUnghie(), trattamenti: [], prossimoRefill: '',
   });
   e.target.reset();
+  clFirmaPad.clearPad();
   renderClienti(); updateStats(); renderOggi(); salvaAgenda();
   showToast('Scheda cliente salvata', 'ok');
 });
@@ -1776,7 +1838,6 @@ function updateStats(){
   let top = '—', max = 0;
   Object.entries(counts).forEach(([k,v])=>{ if(v>max){max=v; top=k;} });
   document.getElementById('stat-top').textContent = top;
-  animateValue(document.getElementById('stat-blacklist'), clienti.filter(c=>c.blacklisted).length);
 }
 
 // -------- "Oggi in breve": idea originale, non richiesta esplicitamente --------
@@ -2435,7 +2496,7 @@ document.getElementById('btn-open-gate').addEventListener('click', showGate);
 function buildExportWorkbook(){
   const wb = XLSX.utils.book_new();
   const now = new Date().toLocaleString('it-IT');
-  const esito = a => a.cancelSeverity==='severe' ? 'Lista nera (<24h)' : a.cancelSeverity==='warn' ? 'Preavviso breve (24-48h)' : '';
+  const esito = a => a.cancelSeverity==='severe' ? 'Disdetta ultimo minuto (<24h)' : a.cancelSeverity==='warn' ? 'Preavviso breve (24-48h)' : '';
   const aoaApp = [
     ['Data','Ora','Operatrice','Nome','Cognome','Telefono','Servizio','Note','Esito disdetta','Esportato il'],
     ...appuntamenti.map(a=>[fmtData(a.data),a.ora,a.operatrice||'',a.nome,a.cognome,a.tel,a.servizio,a.note,esito(a),now])
@@ -2447,8 +2508,8 @@ function buildExportWorkbook(){
     return `${fmtData(t.data)} — ${t.servizio||''}${t.colore?(' — '+t.colore):''}`;
   };
   const aoaCl = [
-    ['Nome','Cognome','Data di nascita','Telefono','Email','Come ci ha conosciuta','Personalità','Colore preferito','Forma unghia','Argomenti graditi','Allergie','Note di salute','Disdette last-minute','Lista nera','Ultimo trattamento','Prossimo refill consigliato','Consenso dati','Consenso promo','Consenso foto','Note','Esportato il'],
-    ...clienti.map(c=>[c.nome,c.cognome,fmtData(c.nascita),c.tel,c.email,c.fonte,c.personalita,c.colore,c.forma,c.smalltalk,c.allergie,c.salute,c.lateCancellations||0,c.blacklisted?'Sì':'No',ultimoTrattamento(c),fmtData(c.prossimoRefill)||'',c.consenso,c.promo,c.foto,c.note,now])
+    ['Nome','Cognome','Data di nascita','Telefono','Email','Come ci ha conosciuta','Personalità','Colore preferito','Forma unghia','Argomenti graditi','Allergie','Note di salute','Disdette last-minute','Ultimo trattamento','Prossimo refill consigliato','Consenso dati','Consenso promo','Consenso foto','Note','Esportato il'],
+    ...clienti.map(c=>[c.nome,c.cognome,fmtData(c.nascita),c.tel,c.email,c.fonte,c.personalita,c.colore,c.forma,c.smalltalk,c.allergie,c.salute,c.lateCancellations||0,ultimoTrattamento(c),fmtData(c.prossimoRefill)||'',c.consenso,c.promo,c.foto,c.note,now])
   ];
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoaApp), 'Agenda (Vetrina)');
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoaCl), 'Clienti (Vetrina)');
