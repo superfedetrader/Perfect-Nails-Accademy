@@ -84,15 +84,33 @@
 
   .app{ position:relative; z-index:1; display:flex; min-height:100vh; }
   aside{
-    width:250px; flex-shrink:0; padding:26px 18px; display:flex; flex-direction:column; gap:18px;
-    border-right:1px solid var(--line);
+    position:relative; width:250px; flex-shrink:0; padding:26px 18px; display:flex; flex-direction:column; gap:18px;
+    border-right:1px solid var(--line); overflow:hidden;
     background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);
+    transition:width .2s ease, padding .2s ease;
   }
   .brand{ display:flex; align-items:center; gap:10px; padding:0 6px; }
   .brand .mark{ width:34px; height:34px; border-radius:10px; background:linear-gradient(135deg,var(--gold),#8a6a1f);
-    display:flex; align-items:center; justify-content:center; font-size:1.05rem; box-shadow:0 0 20px var(--gold-dim); }
+    display:flex; align-items:center; justify-content:center; font-size:1.05rem; box-shadow:0 0 20px var(--gold-dim); flex-shrink:0; }
   .brand b{ font-size:1.02rem; letter-spacing:0.2px; }
   .brand span{ display:block; font-size:0.68rem; color:var(--grey-dim); margin-top:1px; }
+
+  /* comprimere la sidebar a sola icona, su richiesta esplicita — recupera spazio orizzontale per il contenuto */
+  .sidebar-toggle{
+    position:absolute; top:30px; right:-13px; width:26px; height:26px; border-radius:50%;
+    background:var(--bg2); border:1px solid var(--glass-brd); color:var(--grey-dim); cursor:pointer;
+    display:flex; align-items:center; justify-content:center; font-size:0.75rem; z-index:5; padding:0;
+    transition:transform .2s ease, color .15s ease, border-color .15s ease; box-shadow:0 2px 8px rgba(0,0,0,0.35);
+  }
+  .sidebar-toggle:hover{ color:var(--gold-soft); border-color:var(--gold); }
+  aside.collapsed{ width:64px; padding-left:13px; padding-right:13px; }
+  aside.collapsed .sidebar-toggle{ transform:rotate(180deg); }
+  aside.collapsed .brand{ justify-content:center; padding:0; }
+  aside.collapsed .brand > div:not(.mark){ display:none; }
+  aside.collapsed nav .nav-btn{ justify-content:center; padding:10px 4px; }
+  aside.collapsed nav .nav-btn .lbl,
+  aside.collapsed nav .nav-btn .n{ display:none; }
+  aside.collapsed .kbd-hint{ display:none; }
 
   nav{ display:flex; flex-direction:column; gap:4px; }
   .nav-btn{
@@ -138,24 +156,29 @@
   header.topbar{ display:flex; align-items:center; justify-content:space-between; margin-bottom:22px; gap:14px; flex-wrap:wrap; }
   header.topbar h1{ margin:0; font-size:1.5rem; font-weight:800; letter-spacing:0.2px; }
   header.topbar .sub{ color:var(--grey-dim); font-size:0.85rem; margin-top:2px; }
-  .day-quote{ color:var(--gold-soft); font-size:0.8rem; margin-top:5px; font-style:italic; opacity:0.92; max-width:520px; }
-  .search-trigger{
-    display:flex; align-items:center; gap:8px; padding:9px 14px; border-radius:11px; background:var(--glass);
-    border:1px solid var(--glass-brd); color:var(--grey-dim); font-size:0.82rem; cursor:pointer; min-width:220px;
+  .day-quote{ color:var(--gold-soft); font-size:0.98rem; margin-top:6px; font-style:italic; opacity:0.92; max-width:560px; line-height:1.4; }
+  /* barra di ricerca grande, sotto l'intestazione — prima era piccola in un angolo, l'utente la voleva più */
+  /* comoda e prominente dato che la usa spesso */
+  .search-trigger-big{
+    display:flex; align-items:center; gap:12px; padding:16px 20px; border-radius:14px; background:var(--glass);
+    border:1px solid var(--glass-brd); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
+    color:var(--grey-dim); font-size:1rem; cursor:pointer; margin-bottom:20px; transition:border-color .15s ease;
   }
-  .search-trigger kbd{ margin-left:auto; background:rgba(255,255,255,0.08); padding:1px 7px; border-radius:6px; font-size:0.72rem; color:var(--grey); }
+  .search-trigger-big:hover{ border-color:rgba(212,175,55,0.35); }
+  .search-trigger-big kbd{ margin-left:auto; background:rgba(255,255,255,0.08); padding:2px 9px; border-radius:7px; font-size:0.8rem; color:var(--grey); }
 
-  /* striscia compatta di statistiche — prima erano 5 grandi riquadri che occupavano tanto spazio verticale */
-  /* per un contenuto che è in fondo un singolo numero: qui stesso linguaggio visivo delle pillole della toolbar */
-  .stats{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:18px; padding:10px 14px;
-    background:var(--glass); border:1px solid var(--glass-brd); border-radius:14px; backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); }
-  .stat{
-    display:flex; align-items:baseline; gap:7px; padding:6px 13px; border-radius:999px;
-    border:1px solid var(--line); background:rgba(255,255,255,0.035); white-space:nowrap;
+  /* le 5 statistiche, ora un elenco verticale compatto nell'angolo in alto a destra — stessa altezza/ingombro */
+  /* del blocco "Bentornata + data + frase" a sinistra, non un blocco a sé che occupa una riga intera */
+  .stats-mini{ display:flex; flex-direction:column; align-items:flex-end; gap:5px; flex-shrink:0; }
+  .stat-mini{ display:flex; align-items:baseline; gap:7px; font-size:0.7rem; white-space:nowrap; }
+  .stat-mini .label{ color:var(--grey-dim); font-weight:700; letter-spacing:0.02em; }
+  .stat-mini .value{
+    font-size:0.88rem; font-weight:800; background:linear-gradient(135deg,var(--gold-soft),var(--gold));
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+    display:inline-block; transform-origin:right center; transition:transform .15s ease;
   }
-  .stat .label{ font-size:0.72rem; letter-spacing:0.02em; color:var(--grey-dim); font-weight:700; }
-  .stat .value{ font-size:0.92rem; font-weight:800; background:linear-gradient(135deg,var(--gold-soft),var(--gold));
-    -webkit-background-clip:text; background-clip:text; color:transparent; }
+  .stat-mini:hover .value{ transform:scale(1.4); }
+  .stat-mini.danger .value{ background:none; -webkit-text-fill-color:var(--danger); color:var(--danger); }
 
   .panel{ display:none; }
   .panel.active{ display:block; animation: fadein .35s ease; }
@@ -458,6 +481,11 @@
   @media(max-width:880px){
     .app{ flex-direction:column; }
     aside{ width:100%; flex-direction:column; align-items:stretch; padding:14px 16px 10px; border-right:none; border-bottom:1px solid var(--line); overflow-x:visible; }
+    aside.collapsed{ width:100%; padding:14px 16px 10px; } /* il collasso ha senso solo su desktop */
+    aside.collapsed .brand > div:not(.mark){ display:block; }
+    aside.collapsed nav .nav-btn .lbl, aside.collapsed nav .nav-btn .n{ display:inline; }
+    aside.collapsed .kbd-hint{ display:flex; }
+    .sidebar-toggle{ display:none; }
     .save-card{ padding:9px 12px; font-size:0.74rem; }
     .save-card p{ display:none; }
     .save-card .row{ margin-bottom:6px; }
@@ -469,7 +497,10 @@
     .glass-card{ padding:16px 16px; margin-bottom:14px; }
     .glass-card h2{ margin-bottom:10px; }
     .card-oggi .oggi-sub{ margin:-6px 0 8px; }
-    .stats{ margin-bottom:14px; }
+    .search-trigger-big{ margin-bottom:14px; padding:12px 16px; font-size:0.92rem; }
+    /* su schermi stretti l'elenco statistiche in colonna diventerebbe scomodo: torna a una riga che va a capo */
+    .stats-mini{ flex-direction:row; flex-wrap:wrap; align-items:center; width:100%; gap:7px 14px; }
+    .stat-mini{ flex-direction:row; }
 
     /* barra di navigazione in basso, stile app */
     nav{
@@ -480,9 +511,6 @@
     }
     .nav-btn{ flex:1; flex-direction:column; gap:2px; align-items:center; justify-content:center; padding:6px 4px; font-size:0.66rem; border-radius:12px; }
     .nav-btn .n{ margin-left:0; }
-
-    /* la striscia di statistiche compatta (v4.8) va già bene così com'è su mobile: va semplicemente a capo */
-    .stats{ padding:8px 10px; }
 
     /* la lista viene prima del form: niente più scroll infinito per trovare gli appuntamenti */
     .panel.active{ display:flex; flex-direction:column; }
@@ -512,14 +540,15 @@
 <div id="sparkles"></div>
 
 <div class="app">
-  <aside>
+  <aside id="sidebar">
+    <button type="button" class="sidebar-toggle" id="btn-sidebar-toggle" title="Comprimi/espandi il menu">‹</button>
     <div class="brand">
       <div class="mark">✨</div>
       <div><b>Perfect Nails Accademy</b><span>Gestionale per onicotecnica</span></div>
     </div>
     <nav>
-      <button class="nav-btn active" data-tab="agenda">📅 Agenda <span class="n" id="nav-count-agenda">0</span></button>
-      <button class="nav-btn" data-tab="clienti">💅 Clienti <span class="n" id="nav-count-clienti">0</span></button>
+      <button class="nav-btn active" data-tab="agenda"><span class="ico">📅</span><span class="lbl"> Agenda</span> <span class="n" id="nav-count-agenda">0</span></button>
+      <button class="nav-btn" data-tab="clienti"><span class="ico">💅</span><span class="lbl"> Clienti</span> <span class="n" id="nav-count-clienti">0</span></button>
     </nav>
     <div class="kbd-hint">
       <div class="save-card">
@@ -543,16 +572,16 @@
         <div class="sub" id="today-label"></div>
         <div class="day-quote" id="day-quote"></div>
       </div>
-      <div class="search-trigger" id="open-cmdk">🔍 Cerca clienti, appuntamenti…<kbd>⌘K</kbd></div>
+      <div class="stats-mini">
+        <div class="stat-mini"><span class="label">Appuntamenti</span><span class="value" id="stat-tot">0</span></div>
+        <div class="stat-mini"><span class="label">Clienti</span><span class="value" id="stat-clienti">0</span></div>
+        <div class="stat-mini"><span class="label">Promemoria</span><span class="value" id="stat-prom">0</span></div>
+        <div class="stat-mini"><span class="label">Top servizio</span><span class="value" id="stat-top">—</span></div>
+        <div class="stat-mini danger"><span class="label">⚫ Lista nera</span><span class="value" id="stat-blacklist">0</span></div>
+      </div>
     </header>
 
-    <div class="stats">
-      <div class="stat"><span class="label">Appuntamenti</span><span class="value" id="stat-tot">0</span></div>
-      <div class="stat"><span class="label">Clienti</span><span class="value" id="stat-clienti">0</span></div>
-      <div class="stat"><span class="label">Promemoria</span><span class="value" id="stat-prom">0</span></div>
-      <div class="stat"><span class="label">Top servizio</span><span class="value" id="stat-top">—</span></div>
-      <div class="stat"><span class="label">⚫ Lista nera</span><span class="value" id="stat-blacklist" style="background:none; -webkit-text-fill-color:var(--danger); color:var(--danger);">0</span></div>
-    </div>
+    <div class="search-trigger-big" id="open-cmdk">🔍 Cerca clienti, appuntamenti…<kbd>⌘K</kbd></div>
 
     <div class="glass-card" id="backup-reminder" style="display:none;">
       <div class="br-row">
@@ -808,6 +837,18 @@ function fraseDelGiorno(){
   return FRASI_GIORNO[giornoAnno % FRASI_GIORNO.length];
 }
 document.getElementById('day-quote').textContent = '✨ ' + fraseDelGiorno();
+
+// -------- sidebar comprimibile — richiesta esplicita, per recuperare spazio orizzontale su desktop --------
+// NB: il ripristino dello stato salvato (idbGet) è più sotto, vicino a checkBackupReminder()/riconnettiSyncSeSalvato():
+// IDB_NAME/IDB_STORE sono `const` dichiarate molto più in basso nel file, quindi chiamarlo qui (subito) fallirebbe
+// (temporal dead zone) — il listener invece è sicuro da attaccare subito, scatta solo al click dell'utente, molto dopo.
+const sidebarEl = document.getElementById('sidebar');
+const sidebarToggleBtn = document.getElementById('btn-sidebar-toggle');
+sidebarToggleBtn.addEventListener('click', ()=>{
+  const collapsed = sidebarEl.classList.toggle('collapsed');
+  sidebarToggleBtn.title = collapsed ? 'Espandi il menu' : 'Comprimi il menu';
+  idbSet('sidebarCollapsed', collapsed);
+});
 
 // -------- tabs --------
 document.querySelectorAll('.nav-btn').forEach(btn=>{
@@ -2481,6 +2522,12 @@ document.getElementById('mobile-fab').addEventListener('click', ()=>{
   checkBackupReminder();
   riconnettiSyncSeSalvato();
   caricaNumeriOperatrici();
+  idbGet('sidebarCollapsed').then(collapsed=>{
+    if(collapsed){
+      sidebarEl.classList.add('collapsed');
+      sidebarToggleBtn.title = 'Espandi il menu';
+    }
+  });
 
   if(!haRecuperatoQualcosa){ showGate(); }
 })();
