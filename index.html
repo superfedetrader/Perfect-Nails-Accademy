@@ -11,8 +11,10 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Perfect Nails">
-<link rel="apple-touch-icon" href="icon-192.png">
-<link rel="icon" href="icon-192.png">
+<!-- ?v= sulla favicon: i browser mettono in cache l'icona del tab molto aggressivamente, a volte anche dopo
+     che il file è stato sostituito — cambiando questo numero a ogni redesign dell'icona forziamo il refresh -->
+<link rel="apple-touch-icon" href="icon-192.png?v=2">
+<link rel="icon" href="icon-192.png?v=2">
 <style>
   :root{
     --bg:#11142a;
@@ -143,16 +145,16 @@
   }
   .search-trigger kbd{ margin-left:auto; background:rgba(255,255,255,0.08); padding:1px 7px; border-radius:6px; font-size:0.72rem; color:var(--grey); }
 
-  .stats{ display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:14px; margin-bottom:24px; }
+  /* striscia compatta di statistiche — prima erano 5 grandi riquadri che occupavano tanto spazio verticale */
+  /* per un contenuto che è in fondo un singolo numero: qui stesso linguaggio visivo delle pillole della toolbar */
+  .stats{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:18px; padding:10px 14px;
+    background:var(--glass); border:1px solid var(--glass-brd); border-radius:14px; backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); }
   .stat{
-    background:var(--glass); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
-    border:1px solid var(--glass-brd); border-radius:16px; padding:16px 18px; position:relative; overflow:hidden;
-    transition:transform .18s ease, border-color .18s ease;
+    display:flex; align-items:baseline; gap:7px; padding:6px 13px; border-radius:999px;
+    border:1px solid var(--line); background:rgba(255,255,255,0.035); white-space:nowrap;
   }
-  .stat:hover{ transform:translateY(-2px); border-color:rgba(212,175,55,0.3); }
-  .stat::after{ content:''; position:absolute; inset:0; background:linear-gradient(135deg, rgba(212,175,55,0.08), transparent 60%); pointer-events:none; }
-  .stat .label{ font-size:0.72rem; text-transform:uppercase; letter-spacing:0.05em; color:var(--grey-dim); font-weight:700; }
-  .stat .value{ font-size:1.9rem; font-weight:800; margin-top:4px; background:linear-gradient(135deg,var(--gold-soft),var(--gold));
+  .stat .label{ font-size:0.72rem; letter-spacing:0.02em; color:var(--grey-dim); font-weight:700; }
+  .stat .value{ font-size:0.92rem; font-weight:800; background:linear-gradient(135deg,var(--gold-soft),var(--gold));
     -webkit-background-clip:text; background-clip:text; color:transparent; }
 
   .panel{ display:none; }
@@ -191,7 +193,8 @@
     font-weight:800; margin:18px 0 8px; padding-bottom:6px; border-bottom:1px solid var(--line); }
   .section-title:first-child{ margin-top:0; }
 
-  .toolbar{ display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px; align-items:center; }
+  .toolbar{ display:flex; gap:12px; flex-wrap:wrap; margin-bottom:16px; align-items:center; }
+  .tb-divider{ width:1px; align-self:stretch; min-height:26px; background:var(--line); }
   .toolbar input[type=text]{ max-width:260px; }
   .toolbar select{ max-width:200px; }
   .toolbar .count{ margin-left:auto; font-size:0.8rem; color:var(--grey-dim); }
@@ -238,6 +241,15 @@
   /* -------- valore immediato appena si apre l'app, su qualunque dispositivo -------- */
   .card-oggi{ background:linear-gradient(135deg, rgba(212,175,55,0.07), rgba(139,127,240,0.05)); border-color:rgba(212,175,55,0.22); }
   .oggi-sub{ font-size:0.8rem; color:var(--grey-dim); margin:-10px 0 14px; text-transform:capitalize; }
+  /* due colonne affiancate invece di impilate: la card è larga, il contenuto (poche righe) no —
+     mettere "oggi" e "da richiamare" fianco a fianco usa lo spazio invece di lasciarlo vuoto a destra */
+  .oggi-grid{ display:grid; grid-template-columns:1fr 1fr; gap:6px 28px; align-items:start; }
+  .oggi-grid .oggi-col:first-child{ border-right:1px solid var(--line); padding-right:24px; }
+  .oggi-call-title{ margin-top:0 !important; }
+  @media (max-width:760px){
+    .oggi-grid{ grid-template-columns:1fr; }
+    .oggi-grid .oggi-col:first-child{ border-right:none; padding-right:0; border-bottom:1px solid var(--line); padding-bottom:10px; margin-bottom:4px; }
+  }
   .oggi-empty{ font-size:0.84rem; color:var(--grey-dim); padding:6px 0 4px; }
   .oggi-row{ display:flex; align-items:center; gap:12px; padding:9px 4px; border-radius:10px; cursor:pointer; transition:background .12s ease; }
   .oggi-row:hover{ background:var(--glass); }
@@ -469,9 +481,8 @@
     .nav-btn{ flex:1; flex-direction:column; gap:2px; align-items:center; justify-content:center; padding:6px 4px; font-size:0.66rem; border-radius:12px; }
     .nav-btn .n{ margin-left:0; }
 
-    /* stat cards: striscia scorrevole invece di colonna lunga */
-    .stats{ display:flex; grid-template-columns:none; overflow-x:auto; scroll-snap-type:x mandatory; gap:10px; padding-bottom:6px; margin-bottom:16px; -webkit-overflow-scrolling:touch; }
-    .stats .stat{ min-width:158px; flex-shrink:0; scroll-snap-align:start; }
+    /* la striscia di statistiche compatta (v4.8) va già bene così com'è su mobile: va semplicemente a capo */
+    .stats{ padding:8px 10px; }
 
     /* la lista viene prima del form: niente più scroll infinito per trovare gli appuntamenti */
     .panel.active{ display:flex; flex-direction:column; }
@@ -503,7 +514,7 @@
 <div class="app">
   <aside>
     <div class="brand">
-      <div class="mark">💎</div>
+      <div class="mark">✨</div>
       <div><b>Perfect Nails Accademy</b><span>Gestionale per onicotecnica</span></div>
     </div>
     <nav>
@@ -519,6 +530,7 @@
         <button class="link-btn" id="btn-share-backup" style="margin-top:6px;">📤 Condividi backup</button>
         <button class="link-btn" id="btn-export-xlsx" style="margin-top:2px;">⬇️ Esporta anche per Excel</button>
         <button class="link-btn" id="btn-sync-settings" style="margin-top:2px;">🔗 Sincronizzazione condivisa <span id="sync-sidebar-status"></span></button>
+        <button class="link-btn" id="btn-whatsapp-settings" style="margin-top:2px;">📲 Numeri per i promemoria</button>
       </div>
       <small style="color:var(--grey-dim); font-size:0.72rem; padding:0 4px;">Ctrl/Cmd+K per la ricerca rapida ✨</small>
     </div>
@@ -535,11 +547,11 @@
     </header>
 
     <div class="stats">
-      <div class="stat"><div class="label">Appuntamenti totali</div><div class="value" id="stat-tot">0</div></div>
-      <div class="stat"><div class="label">Clienti in archivio</div><div class="value" id="stat-clienti">0</div></div>
-      <div class="stat"><div class="label">Promemoria da inviare</div><div class="value" id="stat-prom">0</div></div>
-      <div class="stat"><div class="label">Servizio più richiesto</div><div class="value" id="stat-top" style="font-size:1.1rem;">—</div></div>
-      <div class="stat"><div class="label">⚫ In lista nera</div><div class="value" id="stat-blacklist" style="background:none; -webkit-text-fill-color:var(--danger); color:var(--danger);">0</div></div>
+      <div class="stat"><span class="label">Appuntamenti</span><span class="value" id="stat-tot">0</span></div>
+      <div class="stat"><span class="label">Clienti</span><span class="value" id="stat-clienti">0</span></div>
+      <div class="stat"><span class="label">Promemoria</span><span class="value" id="stat-prom">0</span></div>
+      <div class="stat"><span class="label">Top servizio</span><span class="value" id="stat-top">—</span></div>
+      <div class="stat"><span class="label">⚫ Lista nera</span><span class="value" id="stat-blacklist" style="background:none; -webkit-text-fill-color:var(--danger); color:var(--danger);">0</span></div>
     </div>
 
     <div class="glass-card" id="backup-reminder" style="display:none;">
@@ -604,11 +616,13 @@
             <button type="button" data-view="giorno">🕐 Giorno</button>
             <button type="button" data-view="settimana">🗓️ Settimana</button>
           </div>
+          <span class="tb-divider"></span>
           <div class="op-filter" id="op-filter">
             <button type="button" class="op-pill active" data-op="">✨ Tutte</button>
             <button type="button" class="op-pill" data-op="Maria"><span class="d"></span> Maria</button>
             <button type="button" class="op-pill" data-op="Karla"><span class="d"></span> Karla</button>
           </div>
+          <span class="tb-divider"></span>
           <button type="button" class="btn ghost sm" id="ag-filters-toggle">🔍 Filtri</button>
           <div id="ag-toolbar-extra">
             <input type="text" id="ag-search" placeholder="🔍 Cerca nome, cognome o telefono">
@@ -987,8 +1001,8 @@ function renderAgenda(){
           <div class="appt-tel">📞 ${a.tel}</div>
           <div class="appt-serv">${a.servizio}</div>
           <div class="prom-wrap">
-            <span class="prom ${promClass(a.prom3)}" data-idx="${realIdx}" data-field="prom3">3gg · ${a.prom3}</span>
-            <span class="prom ${promClass(a.prom1)}" data-idx="${realIdx}" data-field="prom1">1gg · ${a.prom1}</span>
+            <span class="prom ${promClass(a.prom3)}" data-idx="${realIdx}" data-field="prom3" title="${a.prom3==='Da inviare'?'Clicca per aprire WhatsApp con il messaggio pronto':''}">3gg · ${a.prom3==='Da inviare'?'💬 ':''}${a.prom3}</span>
+            <span class="prom ${promClass(a.prom1)}" data-idx="${realIdx}" data-field="prom1" title="${a.prom1==='Da inviare'?'Clicca per aprire WhatsApp con il messaggio pronto':''}">1gg · ${a.prom1==='Da inviare'?'💬 ':''}${a.prom1}</span>
           </div>
           <span class="badge ${statoClass(a.stato)}" data-stato-idx="${realIdx}" title="Clicca per cambiare stato">${a.stato}</span>
           <button class="icon-btn edit" data-edit="${realIdx}" title="Modifica">✏️</button>
@@ -1034,7 +1048,13 @@ function renderAgenda(){
       const idx = +el.dataset.idx, field = el.dataset.field;
       const cycle = ['Da inviare','Inviato','Non necessario'];
       const cur = cycle.indexOf(appuntamenti[idx][field]);
-      appuntamenti[idx][field] = cycle[(cur+1)%cycle.length];
+      const next = cycle[(cur+1)%cycle.length];
+      // passando da "Da inviare" a "Inviato" è il momento naturale in cui la promemoria va davvero mandata:
+      // si apre WhatsApp con il messaggio già scritto, pronto da inviare con un tap in più
+      if(appuntamenti[idx][field]==='Da inviare' && next==='Inviato'){
+        apriPromemoriaWhatsApp(appuntamenti[idx]);
+      }
+      appuntamenti[idx][field] = next;
       renderAgenda(); updateStats(); renderOggi(); salvaAgenda();
     });
   });
@@ -1767,9 +1787,13 @@ function renderOggi(){
   el.innerHTML = `
     <h2><span class="dot"></span> Oggi in breve</h2>
     <div class="oggi-sub">${oggiLabel}</div>
-    ${apptRows}
-    <div class="section-title" style="margin-top:16px;">📞 Da richiamare</div>
-    ${richiamaRows}
+    <div class="oggi-grid">
+      <div class="oggi-col">${apptRows}</div>
+      <div class="oggi-col">
+        <div class="section-title oggi-call-title">📞 Da richiamare</div>
+        ${richiamaRows}
+      </div>
+    </div>
   `;
   el.querySelectorAll('[data-edit]').forEach(row=> row.addEventListener('click', ()=> openApptModal(+row.dataset.edit)));
   el.querySelectorAll('[data-richiama]').forEach(btn=>{
@@ -2043,6 +2067,75 @@ async function riconnettiSyncSeSalvato(){
     await connettiSync(JSON.stringify(saved.config), saved.codice);
   }
 }
+
+// =========================================================================
+// PROMEMORIA WHATSAPP — richiesta esplicita dell'utente: non è un invio automatico "silenzioso"
+// (WhatsApp non lo permette a un numero normale, senza WhatsApp Business API/costi/approvazione template),
+// ma il modo più vicino possibile senza servizi a pagamento: un click apre WhatsApp con il messaggio già
+// scritto e il numero della cliente già impostato, pronto da inviare con un secondo tap.
+// =========================================================================
+let numeriOperatrici = { Maria:'', Karla:'+39 3514338858' };
+async function caricaNumeriOperatrici(){
+  const saved = await idbGet('numeriOperatrici');
+  if(saved && typeof saved==='object') numeriOperatrici = Object.assign({}, numeriOperatrici, saved);
+}
+function salvaNumeriOperatrici(){ idbSet('numeriOperatrici', numeriOperatrici); }
+
+// converte un numero italiano scritto in mille modi ("333 1234567", "0039 333...", "+39...") nel formato
+// senza simboli/spazi che vuole l'indirizzo wa.me (prefisso internazionale + numero, solo cifre)
+function telWhatsApp(tel){
+  let d = (tel||'').replace(/[^0-9]/g,'');
+  if(d.startsWith('0039')) d = d.slice(2);
+  if(d.startsWith('39') && d.length>=11) return d;
+  if(d.startsWith('3') && d.length>=9) return '39'+d; // cellulare italiano scritto senza prefisso
+  return d;
+}
+function testoPromemoria(a){
+  const op = a.operatrice || '';
+  const numOp = (numeriOperatrici[op]||'').trim();
+  const dataFmt = a.data ? new Date(a.data+'T00:00:00').toLocaleDateString('it-IT', {day:'numeric', month:'long'}) : a.data;
+  return `Il tuo appuntamento con ${op}, ${dataFmt} alle ${a.ora} è confermato.\n`
+    + `Per qualsiasi cambiamento si prega gentilmente di avvisare almeno 24 ore prima.\n`
+    + `Se l'appuntamento non viene annullato nei tempi indicati le verrà addebitato un costo pari al 50% del trattamento (al quale non si è presentato).\n`
+    + `Via della Vela 126. Presso Perfect Nails, Civitanova Marche.\n`
+    + `${op}${numOp ? ' '+numOp : ''} Appuntamento confermato!\n`
+    + `Grazie. ☺️`;
+}
+function apriPromemoriaWhatsApp(a){
+  const numCliente = telWhatsApp(a.tel);
+  if(!numCliente || numCliente.length<9){
+    showToast('Il numero di telefono della cliente non sembra valido — controllalo nella scheda.', 'danger');
+    return;
+  }
+  const url = `https://wa.me/${numCliente}?text=${encodeURIComponent(testoPromemoria(a))}`;
+  window.open(url, '_blank');
+}
+function openWhatsAppSettings(){
+  const modal = document.getElementById('modal-content');
+  modal.innerHTML = `
+    <button class="modal-close" id="modal-close">✕</button>
+    <h3>📲 Numeri per i promemoria WhatsApp</h3>
+    <p style="color:var(--grey); font-size:0.85rem; line-height:1.5;">
+      Quando spunti un promemoria come "Inviato" (nella vista Lista), si apre WhatsApp con il messaggio già
+      scritto e pronto — basta premere invia. Questi numeri comparranno in fondo al messaggio, come firma.
+    </p>
+    <div class="grid-form">
+      <div><label>Numero di Maria</label><input type="text" id="wa-tel-maria" placeholder="+39 333 1234567" value="${numeriOperatrici.Maria||''}"></div>
+      <div><label>Numero di Karla</label><input type="text" id="wa-tel-karla" placeholder="+39 333 1234567" value="${numeriOperatrici.Karla||''}"></div>
+    </div>
+    <div class="btn-row"><button class="btn" id="wa-settings-save">💾 Salva</button></div>
+  `;
+  document.getElementById('modal-bg').classList.add('active');
+  document.getElementById('modal-close').addEventListener('click', closeModal);
+  document.getElementById('wa-settings-save').addEventListener('click', ()=>{
+    numeriOperatrici.Maria = document.getElementById('wa-tel-maria').value.trim();
+    numeriOperatrici.Karla = document.getElementById('wa-tel-karla').value.trim();
+    salvaNumeriOperatrici();
+    showToast('Numeri salvati ✨', 'ok');
+    closeModal();
+  });
+}
+document.getElementById('btn-whatsapp-settings').addEventListener('click', openWhatsAppSettings);
 
 function openSyncSettings(){
   const modal = document.getElementById('modal-content');
@@ -2387,6 +2480,7 @@ document.getElementById('mobile-fab').addEventListener('click', ()=>{
   updateSaveUI();
   checkBackupReminder();
   riconnettiSyncSeSalvato();
+  caricaNumeriOperatrici();
 
   if(!haRecuperatoQualcosa){ showGate(); }
 })();
