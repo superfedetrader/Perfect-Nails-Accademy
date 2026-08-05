@@ -300,6 +300,7 @@
   .appt-row{
     display:grid; grid-template-columns:64px 1.35fr 1.05fr 1.25fr auto auto auto auto; gap:12px; align-items:center;
     padding:12px 10px; border-radius:12px; border:1px solid transparent; transition:background .15s ease, border-color .15s ease;
+    position:relative; z-index:1; background:var(--bg);
   }
   .appt-row:hover{ background:var(--glass); border-color:var(--glass-brd); }
   .appt-time{ font-weight:800; color:var(--ink); font-size:0.92rem; }
@@ -308,6 +309,43 @@
   .appt-client .note{ font-size:0.75rem; color:var(--grey-dim); margin-top:2px; }
   .appt-tel{ color:var(--grey); font-size:0.82rem; }
   .appt-serv{ font-size:0.82rem; color:var(--grey); }
+
+  /* -------- swipe & azioni rapide (mobile, v4.12): contenitore che clippa il contenuto mentre -------- */
+  /* -------- scorre, con due "azioni sotto" rivelate a seconda della direzione dello swipe -------- */
+  .appt-swipe{ position:relative; overflow:hidden; border-radius:12px; touch-action:pan-y; }
+  .appt-swipe .appt-row{ will-change:transform; }
+  .swipe-underlay{
+    position:absolute; top:0; bottom:0; width:96px; z-index:0;
+    display:flex; align-items:center; gap:6px; padding:0 22px; font-size:0.76rem; font-weight:700;
+    /* invisibile finché non si sta trascinando o non è rivelato: lo stato :hover di .appt-row usa un
+       background traslucido (var(--glass)), e senza questo opacity:0 il testo colorato dell'azione
+       sarebbe leggermente visibile "in trasparenza" sotto al hover — trovato durante il controllo
+       visivo pre-deploy della v4.12, non solo teoricamente */
+    opacity:0; pointer-events:none; transition:opacity .12s ease;
+  }
+  .appt-swipe.dragging .swipe-underlay, .appt-swipe.open .swipe-underlay{ opacity:1; pointer-events:auto; }
+  .swipe-underlay .ic{ font-size:1.15rem; }
+  .swipe-underlay-left{ left:0; justify-content:flex-start;
+    background:linear-gradient(90deg, rgba(212,175,55,0.30), rgba(212,175,55,0)); color:var(--gold-soft); }
+  .swipe-underlay-right{ right:0; justify-content:flex-end;
+    background:linear-gradient(270deg, rgba(255,123,144,0.32), rgba(255,123,144,0)); color:var(--danger); }
+
+  /* -------- menu contestuale da long-press (mobile, v4.12) -------- */
+  .ctx-menu-backdrop{ position:fixed; inset:0; z-index:95; background:transparent; }
+  .ctx-menu{
+    position:fixed; z-index:96; min-width:190px; background:#14162b; border:1px solid var(--glass-brd);
+    border-radius:14px; box-shadow:0 20px 50px rgba(0,0,0,0.55); padding:6px; display:none;
+    animation:ctxIn .15s ease;
+  }
+  .ctx-menu.show{ display:block; }
+  @keyframes ctxIn{ from{opacity:0; transform:scale(0.94);} to{opacity:1; transform:none;} }
+  .ctx-menu-head{ font-size:0.74rem; color:var(--grey-dim); padding:8px 10px 6px; border-bottom:1px solid var(--line); margin-bottom:4px; }
+  .ctx-item{
+    display:block; width:100%; text-align:left; background:none; border:none; color:var(--ink);
+    font-size:0.86rem; padding:9px 10px; border-radius:9px; cursor:pointer;
+  }
+  .ctx-item:hover, .ctx-item:active{ background:var(--glass); }
+  .ctx-item.danger{ color:var(--danger); }
 
   /* -------- "Oggi in breve": riepilogo intelligente, non richiesto esplicitamente ma pensato per dare -------- */
   /* -------- valore immediato appena si apre l'app, su qualunque dispositivo -------- */
@@ -463,6 +501,18 @@
   .toast.warn{ border-color:rgba(242,194,101,0.4); }
   .toast.danger{ border-color:rgba(232,138,154,0.4); }
 
+  /* -------- toast con Undo (v4.12): stessa base del toast normale, più un bottone Annulla e -------- */
+  /* -------- una barra che si restringe per 4s a mostrare quanto tempo resta per ripensarci -------- */
+  .toast.undo{ position:relative; overflow:hidden; padding-bottom:14px; }
+  .toast .toast-msg{ flex:1; }
+  .toast .undo-btn{
+    background:var(--gold-dim); color:var(--gold-soft); border:1px solid rgba(212,175,55,0.4); border-radius:8px;
+    padding:5px 12px; font-size:0.78rem; font-weight:700; cursor:pointer; white-space:nowrap;
+  }
+  .toast .undo-btn:hover{ background:rgba(212,175,55,0.32); }
+  .toast .toast-bar{ position:absolute; left:0; bottom:0; height:3px; background:var(--gold); animation:toastShrink 4s linear forwards; }
+  @keyframes toastShrink{ from{width:100%;} to{width:0%;} }
+
   #flash-overlay{ position:fixed; top:26px; left:50%; transform:translateX(-50%) translateY(-14px); z-index:80;
     background:#14090d; border:1.5px solid var(--danger); color:#ffd7dd; padding:14px 22px; border-radius:14px;
     box-shadow:0 20px 50px rgba(0,0,0,0.55); font-size:0.9rem; font-weight:600; display:flex; gap:10px; align-items:center;
@@ -587,93 +637,26 @@
 
     /* modal a foglio, ancorato in basso, più comodo da usare col pollice */
     .modal-bg{ align-items:flex-end; padding:0; }
-    .modal{ max-width:100%; width:100%; max-height:90vh; border-radius:20px 20px 0 0; padding:22px 18px calc(20px + env(safe-area-inset-bottom)); }
+    .modal{ position:relative; max-width:100%; width:100%; max-height:90vh; border-radius:20px 20px 0 0; padding:28px 18px calc(20px + env(safe-area-inset-bottom)); }
+
+    /* -------- vero bottom sheet (v4.12): entra scorrendo dal basso, con una "maniglia" in cima -------- */
+    /* -------- che suggerisce che si può trascinare giù per chiudere (vedi JS: swipe-down-to-close) -------- */
+    .modal-bg.active .modal{ animation:sheetUp .3s cubic-bezier(.19,1,.22,1); }
+    @keyframes sheetUp{ from{ transform:translateY(100%); } to{ transform:translateY(0); } }
+    .modal::before{
+      content:''; position:absolute; top:10px; left:50%; width:38px; height:4px; border-radius:99px;
+      background:var(--glass-brd); transform:translateX(-50%);
+    }
+
+    /* i toast (incluso quello di Undo) sopra la barra di navigazione fissa, non sotto */
+    #toasts{ left:14px; right:14px; bottom:calc(76px + env(safe-area-inset-bottom)); }
+    .toast{ min-width:0; max-width:none; }
 
     #mobile-fab{ display:flex; }
   }
 </style>
 </head>
 <body>
-<div id="pnaLockScreen" style="position:fixed;inset:0;z-index:99999;background:#11142a;display:flex;align-items:center;justify-content:center;padding:20px;font-family:'Inter','Segoe UI','Helvetica Neue',Arial,sans-serif;">
-  <div id="pnaLockCard" style="max-width:340px;width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.14);border-radius:20px;padding:32px 26px;text-align:center;backdrop-filter:blur(10px);box-shadow:0 20px 60px rgba(0,0,0,0.5);"></div>
-</div>
-<script>
-(function(){
-  var KEY = 'pna_lockPin';
-  function simpleHash(str){
-    var h = 5381;
-    for(var i=0;i<str.length;i++){ h = ((h*33) ^ str.charCodeAt(i)) >>> 0; }
-    return h.toString(36);
-  }
-  function getHash(){ try{ return localStorage.getItem(KEY); }catch(e){ return null; } }
-  function setHash(h){ try{ localStorage.setItem(KEY, h||''); }catch(e){} }
-  function unlock(){
-    var el = document.getElementById('pnaLockScreen');
-    if(el) el.remove();
-  }
-  function fieldStyle(){
-    return "width:100%;border:1px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.05);color:#f7f6f3;padding:12px;font-size:1.1rem;text-align:center;letter-spacing:4px;border-radius:10px;margin-bottom:10px;box-sizing:border-box;";
-  }
-  function btnStyle(){
-    return "width:100%;padding:12px 0;border-radius:10px;border:none;cursor:pointer;font-weight:700;font-size:0.85rem;background:#d4af37;color:#11142a;margin-top:4px;";
-  }
-  function linkStyle(){
-    return "display:block;margin:14px auto 0;background:none;border:none;color:#c2c1d1;font-size:0.75rem;cursor:pointer;text-decoration:underline;";
-  }
-  function renderSetup(){
-    var card = document.getElementById('pnaLockCard');
-    card.innerHTML =
-      '<div style="font-weight:700;font-size:1.05rem;color:#d4af37;margin-bottom:16px;">✨ Perfect Nails Accademy</div>' +
-      '<div style="font-weight:700;font-size:1.1rem;margin-bottom:8px;">Proteggi la tua agenda</div>' +
-      '<div style="font-size:0.78rem;color:#c2c1d1;line-height:1.6;margin-bottom:18px;">Imposta un PIN (4-6 cifre). Ti verr\u00e0 chiesto ogni volta che apri questo link.</div>' +
-      '<input type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" id="pnaPinNew" placeholder="Nuovo PIN" style="' + fieldStyle() + '">' +
-      '<input type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" id="pnaPinConfirm" placeholder="Conferma PIN" style="' + fieldStyle() + '">' +
-      '<div id="pnaLockError" style="color:#ff7b90;font-size:0.72rem;min-height:16px;margin-bottom:6px;"></div>' +
-      '<button id="pnaPinSetBtn" style="' + btnStyle() + '">Imposta PIN e continua</button>' +
-      '<button id="pnaPinSkipBtn" style="' + linkStyle() + '">Salta per ora (nessuna protezione)</button>';
-    document.getElementById('pnaPinSetBtn').onclick = function(){
-      var p1 = document.getElementById('pnaPinNew').value.trim();
-      var p2 = document.getElementById('pnaPinConfirm').value.trim();
-      var err = document.getElementById('pnaLockError');
-      if(p1.length < 4){ err.textContent = 'Usa almeno 4 cifre.'; return; }
-      if(p1 !== p2){ err.textContent = 'I due PIN non coincidono.'; return; }
-      setHash(simpleHash(p1));
-      unlock();
-    };
-    document.getElementById('pnaPinSkipBtn').onclick = unlock;
-  }
-  function renderEnter(storedHash){
-    var card = document.getElementById('pnaLockCard');
-    card.innerHTML =
-      '<div style="font-weight:700;font-size:1.05rem;color:#d4af37;margin-bottom:16px;">✨ Perfect Nails Accademy</div>' +
-      '<div style="font-weight:700;font-size:1.1rem;margin-bottom:14px;">\uD83D\uDD12 Inserisci il PIN</div>' +
-      '<input type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" id="pnaPinEnter" placeholder="PIN" style="' + fieldStyle() + '" autofocus>' +
-      '<div id="pnaLockError" style="color:#ff7b90;font-size:0.72rem;min-height:16px;margin-bottom:6px;"></div>' +
-      '<button id="pnaPinEnterBtn" style="' + btnStyle() + '">Sblocca</button>' +
-      '<button id="pnaPinForgotBtn" style="' + linkStyle() + '">PIN dimenticato?</button>';
-    function tryUnlock(){
-      var val = document.getElementById('pnaPinEnter').value.trim();
-      if(simpleHash(val) === storedHash){ unlock(); }
-      else {
-        document.getElementById('pnaLockError').textContent = 'PIN errato, riprova.';
-        document.getElementById('pnaPinEnter').value = '';
-        document.getElementById('pnaPinEnter').focus();
-      }
-    }
-    document.getElementById('pnaPinEnterBtn').onclick = tryUnlock;
-    document.getElementById('pnaPinEnter').onkeydown = function(ev){ if(ev.key === 'Enter') tryUnlock(); };
-    document.getElementById('pnaPinForgotBtn').onclick = function(){
-      if(confirm('Reimpostare il PIN? I dati dell\u2019agenda NON verranno toccati, potrai sceglierne uno nuovo.')){
-        setHash('');
-        renderSetup();
-      }
-    };
-    document.getElementById('pnaPinEnter').focus();
-  }
-  var stored = getHash();
-  if(stored){ renderEnter(stored); } else { renderSetup(); }
-})();
-</script>
 <div class="orb orb1"></div><div class="orb orb2"></div><div class="orb orb3"></div>
 <div id="sparkles"></div>
 
@@ -1051,6 +1034,24 @@ function showToast(msg, type='ok'){
   document.getElementById('toasts').appendChild(el);
   setTimeout(()=>{ el.style.opacity='0'; el.style.transition='opacity .3s'; setTimeout(()=>el.remove(),300); }, 3800);
 }
+// -------- toast con Undo (v4.12) --------
+// Usato dalle cancellazioni "veloci" (bottone cestino, swipe, menu contestuale): invece del solito
+// window.confirm/modal "sei sicura?", l'azione avviene subito e per 4s resta annullabile con un tap —
+// più naturale su mobile (soprattutto per lo swipe, dove un conferma-modal vanificherebbe la rapidità
+// del gesto), e comunque più clemente di un semplice "eliminato per sempre".
+function showUndoToast(msg, onUndo){
+  const el = document.createElement('div');
+  el.className = 'toast danger undo';
+  el.innerHTML = `<span class="icon">🗑️</span><span class="toast-msg">${msg}</span><button type="button" class="undo-btn">Annulla</button><div class="toast-bar"></div>`;
+  document.getElementById('toasts').appendChild(el);
+  let done = false;
+  const finish = ()=>{
+    if(done) return; done = true;
+    el.style.opacity='0'; el.style.transition='opacity .3s'; setTimeout(()=>el.remove(),300);
+  };
+  el.querySelector('.undo-btn').addEventListener('click', ()=>{ onUndo(); finish(); });
+  setTimeout(finish, 4000);
+}
 function showFlash(msg){
   const el = document.getElementById('flash-overlay');
   el.innerHTML = `<span>⚫</span><span>${msg}</span>`;
@@ -1080,8 +1081,42 @@ function confirmAction(title, message, onYes, yesLabel='Conferma', danger=true){
   document.getElementById('confirm-no').addEventListener('click', closeModal);
   document.getElementById('confirm-yes').addEventListener('click', ()=>{ closeModal(); onYes(); });
 }
-function closeModal(){ document.getElementById('modal-bg').classList.remove('active'); }
+function closeModal(){
+  document.getElementById('modal-bg').classList.remove('active');
+  // ripulisce eventuali stili inline lasciati dal trascinamento del bottom sheet (v4.12), altrimenti
+  // il prossimo modal aperto erediterebbe una transform "a metà" invece di partire pulito da sotto
+  const mc = document.getElementById('modal-content');
+  mc.style.transform = ''; mc.style.transition = '';
+}
 document.getElementById('modal-bg').addEventListener('click', e=>{ if(e.target.id==='modal-bg') closeModal(); });
+
+// -------- eliminazione appuntamento con Undo (v4.12) --------
+// Sostituisce il vecchio confirmAction("Eliminare l'appuntamento?") prima della cancellazione: qui si
+// cancella subito e si offre 4s per tornare indietro. Il salvataggio vero e proprio (idbSet + sync verso
+// l'altro dispositivo) viene rimandato fino alla scadenza del timeout, così una cancellazione poi annullata
+// non viene mai scritta né sincronizzata — se nel frattempo si ricarica la pagina prima dello scadere dei
+// 4s, l'appuntamento "cancellato ma non ancora confermato" torna semplicemente visibile (rete di sicurezza,
+// non un bug: meglio ritrovarselo che perderlo).
+let pendingDeletes = [];
+function eliminaAppuntamentoConUndo(idx){
+  const a = appuntamenti[idx];
+  if(!a) return;
+  appuntamenti.splice(idx,1);
+  renderAgenda(); updateStats(); renderOggi();
+  const entry = { item:a };
+  entry.timeoutId = setTimeout(()=>{
+    pendingDeletes = pendingDeletes.filter(x=>x!==entry);
+    salvaAgenda();
+  }, 4000);
+  pendingDeletes.push(entry);
+  showUndoToast(`Appuntamento eliminato — ${a.nome} ${a.cognome}`, ()=>{
+    clearTimeout(entry.timeoutId);
+    pendingDeletes = pendingDeletes.filter(x=>x!==entry);
+    appuntamenti.push(a);
+    renderAgenda(); updateStats(); renderOggi();
+    showToast('Ripristinato', 'ok');
+  });
+}
 
 // -------- data model --------
 const SERVIZI = ["Refill corto","Refill medio","Refill lungo","Ricostruzione","Pedicure","Manicure","Semipermanente rinforzato","Semipermanente normale"];
@@ -1212,23 +1247,33 @@ function renderAgenda(){
       dg.innerHTML = `<div class="day-head">${dayLabel} <span class="cnt">${dayItems.length} appuntamento/i</span></div>`;
       dayItems.forEach(a=>{
         const realIdx = appuntamenti.indexOf(a);
-        const row = document.createElement('div');
-        row.className='appt-row';
-        row.style.borderLeft = `3px solid ${opColor(a.operatrice)}`;
-        row.innerHTML = `
-          <div class="appt-time">${a.ora}<small style="color:${opColor(a.operatrice)}">${a.operatrice||'—'}</small></div>
-          <div class="appt-client"><b>${a.nome} ${a.cognome}</b>${a.note?`<div class="note">${a.note}</div>`:''}</div>
-          <div class="appt-tel">📞 ${a.tel}</div>
-          <div class="appt-serv">${a.servizio}</div>
-          <div class="prom-wrap">
-            <span class="prom ${promClass(a.prom3)}" data-idx="${realIdx}" data-field="prom3" title="${a.prom3==='Da inviare'?'Clicca per aprire WhatsApp con il messaggio pronto':''}">3gg · ${a.prom3==='Da inviare'?'💬 ':''}${a.prom3}</span>
-            <span class="prom ${promClass(a.prom1)}" data-idx="${realIdx}" data-field="prom1" title="${a.prom1==='Da inviare'?'Clicca per aprire WhatsApp con il messaggio pronto':''}">1gg · ${a.prom1==='Da inviare'?'💬 ':''}${a.prom1}</span>
+        // v4.12: ogni riga è avvolta in .appt-swipe — su mobile lo swipe rivela le azioni sotto
+        // (vedi IIFE "swipe & azioni rapide" più in basso nello script), su desktop il wrapper è
+        // invisibile/inerte perché il gesto è disattivato per pointerType 'mouse'
+        const outer = document.createElement('div');
+        outer.className='appt-swipe';
+        outer.dataset.swipeIdx = realIdx;
+        const leftAction = a.stato==='Da confermare'
+          ? `<div class="swipe-underlay swipe-underlay-left" data-swipe-act="confirm"><span class="ic">✅</span><span>Conferma</span></div>`
+          : `<div class="swipe-underlay swipe-underlay-left" data-swipe-act="edit"><span class="ic">✏️</span><span>Modifica</span></div>`;
+        outer.innerHTML = `
+          ${leftAction}
+          <div class="swipe-underlay swipe-underlay-right" data-swipe-act="del"><span class="ic">🗑️</span><span>Elimina</span></div>
+          <div class="appt-row" style="border-left:3px solid ${opColor(a.operatrice)}">
+            <div class="appt-time">${a.ora}<small style="color:${opColor(a.operatrice)}">${a.operatrice||'—'}</small></div>
+            <div class="appt-client"><b>${a.nome} ${a.cognome}</b>${a.note?`<div class="note">${a.note}</div>`:''}</div>
+            <div class="appt-tel">📞 ${a.tel}</div>
+            <div class="appt-serv">${a.servizio}</div>
+            <div class="prom-wrap">
+              <span class="prom ${promClass(a.prom3)}" data-idx="${realIdx}" data-field="prom3" title="${a.prom3==='Da inviare'?'Clicca per aprire WhatsApp con il messaggio pronto':''}">3gg · ${a.prom3==='Da inviare'?'💬 ':''}${a.prom3}</span>
+              <span class="prom ${promClass(a.prom1)}" data-idx="${realIdx}" data-field="prom1" title="${a.prom1==='Da inviare'?'Clicca per aprire WhatsApp con il messaggio pronto':''}">1gg · ${a.prom1==='Da inviare'?'💬 ':''}${a.prom1}</span>
+            </div>
+            <span class="badge ${statoClass(a.stato)}" data-stato-idx="${realIdx}" title="Clicca per cambiare stato">${a.stato}</span>
+            <button class="icon-btn edit" data-edit="${realIdx}" title="Modifica">✏️</button>
+            <button class="icon-btn" data-del="${realIdx}" title="Elimina">🗑️</button>
           </div>
-          <span class="badge ${statoClass(a.stato)}" data-stato-idx="${realIdx}" title="Clicca per cambiare stato">${a.stato}</span>
-          <button class="icon-btn edit" data-edit="${realIdx}" title="Modifica">✏️</button>
-          <button class="icon-btn" data-del="${realIdx}" title="Elimina">🗑️</button>
         `;
-        dg.appendChild(row);
+        dg.appendChild(outer);
       });
       frag.appendChild(dg);
     });
@@ -1279,14 +1324,8 @@ function renderAgenda(){
     });
   });
   list.querySelectorAll('[data-del]').forEach(el=>{
-    el.addEventListener('click', ()=>{
-      const idx = +el.dataset.del, a = appuntamenti[idx];
-      confirmAction('Eliminare l\'appuntamento?', `${a.nome} ${a.cognome} — ${fmtData(a.data)} ${a.ora}. L'azione non è reversibile.`, ()=>{
-        appuntamenti.splice(idx,1);
-        renderAgenda(); updateStats(); renderOggi(); salvaAgenda();
-        showToast('Appuntamento eliminato', 'ok');
-      });
-    });
+    // v4.12: niente più conferma bloccante — elimina subito e offre 4s di Undo (vedi eliminaAppuntamentoConUndo)
+    el.addEventListener('click', ()=> eliminaAppuntamentoConUndo(+el.dataset.del));
   });
   list.querySelectorAll('[data-edit]').forEach(el=>{
     el.addEventListener('click', ()=> openApptModal(+el.dataset.edit));
@@ -2898,6 +2937,180 @@ document.getElementById('mobile-fab').addEventListener('click', ()=>{
   });
 
   if(!haRecuperatoQualcosa){ showGate(); }
+})();
+
+// =========================================================================
+// SWIPE & AZIONI RAPIDE SU MOBILE (v4.12)
+// =========================================================================
+// Solo su schermi ≤880px e solo per input touch/pen (pointerType!=='mouse') — su desktop il click sulle
+// icone ✏️/🗑️ esistenti resta il modo normale di interagire, qui non si aggiunge nulla.
+// Swipe a sinistra (il contenuto scorre verso sinistra) rivela l'azione ancorata a destra (Elimina).
+// Swipe a destra rivela l'azione ancorata a sinistra (Conferma se l'appuntamento è "Da confermare",
+// altrimenti Modifica). Un tocco sull'icona rivelata esegue l'azione; un tocco altrove la richiude.
+// Un long-press (550ms senza spostarsi) apre invece un menu contestuale con le stesse azioni, per chi
+// preferisce non "mirare" col dito a un'icona stretta.
+(function(){
+  const REVEAL = 96, THRESHOLD = 40, LONGPRESS_MS = 550;
+  let dragEl=null, startX=0, startY=0, dx=0, dragging=false, axisLocked=null, longPressTimer=null;
+
+  function isMobile(){ return window.matchMedia('(max-width:880px)').matches; }
+  function closeSwipe(el){
+    if(!el) return;
+    el.classList.remove('open');
+    const row = el.querySelector('.appt-row');
+    row.style.transition = 'transform .2s ease';
+    row.style.transform = '';
+  }
+  function closeAllSwipes(except){
+    document.querySelectorAll('.appt-swipe.open').forEach(el=>{ if(el!==except) closeSwipe(el); });
+  }
+
+  document.addEventListener('pointerdown', e=>{
+    if(!isMobile() || e.pointerType==='mouse') return;
+    const swipeEl = e.target.closest('.appt-swipe');
+    if(!swipeEl) return;
+    if(e.target.closest('.prom, .badge, [data-edit], [data-del], [data-stato-idx], [data-swipe-act]')) return;
+    dragEl = swipeEl; startX=e.clientX; startY=e.clientY; dx=0; dragging=false; axisLocked=null;
+    longPressTimer = setTimeout(()=>{
+      if(!dragging){ apriMenuContestuale(swipeEl); dragEl=null; }
+    }, LONGPRESS_MS);
+  }, {passive:true});
+
+  document.addEventListener('pointermove', e=>{
+    if(!dragEl) return;
+    const mdx = e.clientX-startX, mdy = e.clientY-startY;
+    if(!axisLocked){
+      if(Math.abs(mdx)<8 && Math.abs(mdy)<8) return;
+      axisLocked = Math.abs(mdx)>Math.abs(mdy) ? 'x' : 'y';
+      clearTimeout(longPressTimer);
+      if(axisLocked==='y'){ dragEl=null; return; } // scroll verticale: lo gestisce il browser
+    }
+    if(axisLocked!=='x') return;
+    dragging = true;
+    dragEl.classList.add('dragging'); // rivela l'azione sotto (opacity, vedi CSS) solo mentre si trascina davvero
+    dx = Math.max(-REVEAL-24, Math.min(REVEAL+24, mdx));
+    const row = dragEl.querySelector('.appt-row');
+    row.style.transition = 'none';
+    row.style.transform = `translateX(${dx}px)`;
+    e.preventDefault();
+  }, {passive:false});
+
+  function onPointerUp(){
+    clearTimeout(longPressTimer);
+    if(!dragEl) return;
+    dragEl.classList.remove('dragging');
+    if(!dragging){ dragEl=null; return; }
+    const el = dragEl, row = el.querySelector('.appt-row');
+    row.style.transition = 'transform .2s ease';
+    if(dx < -THRESHOLD){ row.style.transform = `translateX(-${REVEAL}px)`; el.classList.add('open'); closeAllSwipes(el); }
+    else if(dx > THRESHOLD){ row.style.transform = `translateX(${REVEAL}px)`; el.classList.add('open'); closeAllSwipes(el); }
+    else { row.style.transform = ''; el.classList.remove('open'); }
+    dragEl = null; dragging = false;
+  }
+  document.addEventListener('pointerup', onPointerUp, {passive:true});
+  document.addEventListener('pointercancel', onPointerUp, {passive:true});
+
+  // tap su un'azione rivelata dallo swipe, oppure tap altrove per richiudere quella eventualmente aperta
+  document.addEventListener('click', e=>{
+    const actEl = e.target.closest('[data-swipe-act]');
+    if(actEl){
+      const swipeEl = actEl.closest('.appt-swipe');
+      const idx = +swipeEl.dataset.swipeIdx;
+      const act = actEl.dataset.swipeAct;
+      closeSwipe(swipeEl);
+      eseguiAzioneAppuntamento(idx, act);
+      return;
+    }
+    const open = document.querySelector('.appt-swipe.open');
+    if(open && !open.contains(e.target)) closeSwipe(open);
+  });
+
+  // -------- menu contestuale da long-press --------
+  function apriMenuContestuale(swipeEl){
+    const idx = +swipeEl.dataset.swipeIdx;
+    const a = appuntamenti[idx];
+    if(!a) return;
+    if(navigator.vibrate) navigator.vibrate(12);
+    let menu = document.getElementById('ctx-menu');
+    if(!menu){ menu = document.createElement('div'); menu.id='ctx-menu'; menu.className='ctx-menu'; document.body.appendChild(menu); }
+    const items = [{act:'edit', label:'✏️ Modifica'}];
+    if(a.stato==='Da confermare') items.push({act:'confirm', label:'✅ Conferma'});
+    items.push({act:'del', label:'🗑️ Elimina', danger:true});
+    menu.innerHTML = `<div class="ctx-menu-head">${a.nome} ${a.cognome} · ${a.ora}</div>` +
+      items.map(it=>`<button type="button" class="ctx-item ${it.danger?'danger':''}" data-ctx-act="${it.act}">${it.label}</button>`).join('');
+    menu.dataset.idx = idx;
+    let backdrop = document.getElementById('ctx-menu-backdrop');
+    if(!backdrop){ backdrop = document.createElement('div'); backdrop.id='ctx-menu-backdrop'; backdrop.className='ctx-menu-backdrop'; document.body.appendChild(backdrop); }
+    backdrop.onclick = chiudiMenuContestuale;
+    menu.classList.add('show');
+    const rect = swipeEl.getBoundingClientRect();
+    requestAnimationFrame(()=>{
+      const mw = menu.offsetWidth, mh = menu.offsetHeight;
+      let top = rect.bottom + 6;
+      if(top + mh > window.innerHeight - 70) top = Math.max(10, rect.top - mh - 6);
+      menu.style.top = top + 'px';
+      menu.style.left = Math.max(10, Math.min(window.innerWidth - mw - 10, rect.left)) + 'px';
+    });
+  }
+  function chiudiMenuContestuale(){
+    document.getElementById('ctx-menu')?.classList.remove('show');
+    document.getElementById('ctx-menu-backdrop')?.remove();
+  }
+  document.addEventListener('click', e=>{
+    const ctxBtn = e.target.closest('[data-ctx-act]');
+    if(!ctxBtn) return;
+    const idx = +document.getElementById('ctx-menu').dataset.idx;
+    const act = ctxBtn.dataset.ctxAct;
+    chiudiMenuContestuale();
+    eseguiAzioneAppuntamento(idx, act);
+  });
+
+  function eseguiAzioneAppuntamento(idx, act){
+    if(act==='del') eliminaAppuntamentoConUndo(idx);
+    else if(act==='edit') openApptModal(idx);
+    else if(act==='confirm'){
+      appuntamenti[idx].stato = 'Confermato';
+      renderAgenda(); updateStats(); renderOggi(); salvaAgenda();
+    }
+  }
+})();
+
+// =========================================================================
+// BOTTOM SHEET: swipe giù per chiudere il modal (v4.12, solo mobile)
+// =========================================================================
+// #modal-content è un unico nodo riusato da tutte le funzioni che aprono un modal (confirmAction,
+// openApptModal, ecc. — sostituiscono solo il suo innerHTML), quindi basta un solo listener registrato
+// una volta qui, non serve ripeterlo in ogni funzione che apre un modal.
+(function(){
+  const sheet = document.getElementById('modal-content');
+  let startY=0, curY=0, dragging=false;
+  function isMobile(){ return window.matchMedia('(max-width:880px)').matches; }
+  sheet.addEventListener('pointerdown', e=>{
+    if(!isMobile() || e.pointerType==='mouse') return;
+    if(sheet.scrollTop > 4) return; // contenuto scrollato: è uno scroll, non un tentativo di chiudere
+    startY = e.clientY; curY = startY; dragging = true;
+    sheet.style.transition = 'none';
+  }, {passive:true});
+  sheet.addEventListener('pointermove', e=>{
+    if(!dragging) return;
+    curY = e.clientY;
+    const d = curY - startY;
+    if(d > 0){ sheet.style.transform = `translateY(${d}px)`; e.preventDefault(); }
+  }, {passive:false});
+  function endDrag(){
+    if(!dragging) return;
+    dragging = false;
+    const d = curY - startY;
+    sheet.style.transition = 'transform .22s ease';
+    if(d > 110){
+      sheet.style.transform = `translateY(100%)`;
+      setTimeout(closeModal, 180);
+    } else {
+      sheet.style.transform = '';
+    }
+  }
+  sheet.addEventListener('pointerup', endDrag, {passive:true});
+  sheet.addEventListener('pointercancel', endDrag, {passive:true});
 })();
 </script>
 </body>
