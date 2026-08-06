@@ -298,7 +298,7 @@
   .past-body{ margin-top:8px; opacity:0.82; }
 
   .appt-row{
-    display:grid; grid-template-columns:64px 1.35fr 1.05fr 1.25fr auto auto auto auto; gap:12px; align-items:center;
+    display:grid; grid-template-columns:64px 1.35fr 1.05fr 1.25fr auto auto auto auto auto; gap:12px; align-items:center;
     padding:12px 10px; border-radius:12px; border:1px solid transparent; transition:background .15s ease, border-color .15s ease;
     position:relative; z-index:1; background:var(--bg);
   }
@@ -346,6 +346,47 @@
   }
   .ctx-item:hover, .ctx-item:active{ background:var(--glass); }
   .ctx-item.danger{ color:var(--danger); }
+
+  /* -------- "cliente fatta" + importo speso (v4.13) -------- */
+  /* pillola con quadratino + etichetta (stesso linguaggio visivo di .badge/.prom) invece di un quadratino
+     "muto": su mobile, dove le righe si impilano in colonne piene larghezza, un quadratino da solo su una
+     riga intera sarebbe poco chiaro senza l'aiuto dell'hover/title (che sul tocco non esiste) */
+  .done-wrap{ display:flex; align-items:center; gap:6px; }
+  .done-check{
+    display:inline-flex; align-items:center; gap:6px; flex:0 0 auto; cursor:pointer;
+    padding:4px 10px 4px 4px; border-radius:999px; border:1.5px solid var(--glass-brd); background:var(--glass);
+    color:var(--grey-dim); font-size:0.72rem; font-weight:800; letter-spacing:0.01em;
+    transition:background .15s ease, border-color .15s ease, color .15s ease;
+  }
+  .done-check:hover{ border-color:var(--ok); color:var(--ok); }
+  .done-box{
+    width:18px; height:18px; border-radius:6px; flex:0 0 auto; border:1.5px solid currentColor;
+    display:flex; align-items:center; justify-content:center; font-size:0.72rem; font-weight:900; line-height:1;
+    transition:background .15s ease, border-color .15s ease;
+  }
+  .done-check.checked{ background:var(--ok-bg); border-color:rgba(111,207,151,0.4); color:var(--ok); }
+  .done-check.checked .done-box{ background:var(--ok); border-color:var(--ok); color:#0d2015; }
+  .done-amount{
+    font-size:0.74rem; font-weight:800; color:var(--ok); background:var(--ok-bg); border:1px solid rgba(111,207,151,0.35);
+    padding:4px 9px; border-radius:999px; cursor:pointer; white-space:nowrap;
+  }
+  .done-amount:hover{ background:rgba(111,207,151,0.26); }
+  .done-amount.empty{ color:var(--grey-dim); background:var(--glass); border-color:var(--glass-brd); }
+
+  .incasso-backdrop{ position:fixed; inset:0; z-index:97; background:transparent; }
+  .incasso-popover{
+    position:fixed; z-index:98; width:220px; background:#14162b; border:1px solid var(--glass-brd);
+    border-radius:14px; box-shadow:0 20px 50px rgba(0,0,0,0.55); padding:14px; display:none;
+    animation:ctxIn .15s ease;
+  }
+  .incasso-popover.show{ display:block; }
+  .incasso-pop-head{ font-size:0.8rem; color:var(--ink); font-weight:700; margin-bottom:10px; }
+  .incasso-input{
+    width:100%; padding:9px 10px; border-radius:9px; border:1px solid var(--glass-brd); background:var(--bg);
+    color:var(--ink); font-size:0.95rem; margin-bottom:10px;
+  }
+  .incasso-input:focus{ outline:none; border-color:var(--gold); }
+  .incasso-pop-actions{ display:flex; gap:8px; justify-content:flex-end; }
 
   /* -------- "Oggi in breve": riepilogo intelligente, non richiesto esplicitamente ma pensato per dare -------- */
   /* -------- valore immediato appena si apre l'app, su qualunque dispositivo -------- */
@@ -537,6 +578,24 @@
   .week-nav .btn.ghost{ padding:6px 12px; }
   .week-label{ font-weight:700; font-size:0.88rem; color:var(--grey); }
 
+  /* -------- vista Calendario Mensile (v4.13) -------- */
+  .month-weekdays{ display:grid; grid-template-columns:repeat(7,1fr); gap:8px; margin-bottom:6px; }
+  .month-weekdays span{ text-align:center; font-size:0.7rem; font-weight:800; color:var(--grey-dim); text-transform:uppercase; letter-spacing:0.03em; }
+  .month-grid{ display:grid; grid-template-columns:repeat(7,1fr); gap:8px; }
+  .month-cell{
+    background:rgba(255,255,255,0.03); border:1px solid var(--line); border-radius:12px; padding:8px 6px;
+    min-height:72px; display:flex; flex-direction:column; align-items:center; gap:6px; cursor:pointer;
+    font-family:inherit; transition:background .12s ease, border-color .12s ease;
+  }
+  .month-cell:hover{ background:var(--glass); border-color:var(--glass-brd); }
+  .month-cell.outside{ opacity:0.38; }
+  .month-cell.today{ border-color:var(--gold); box-shadow:0 0 0 1px var(--gold-dim); }
+  .month-daynum{ font-size:0.82rem; font-weight:800; color:var(--ink); }
+  .month-cell.today .month-daynum{ color:var(--gold-soft); }
+  .month-dots{ display:flex; align-items:center; gap:3px; flex-wrap:wrap; justify-content:center; min-height:8px; }
+  .month-dot{ width:6px; height:6px; border-radius:50%; flex-shrink:0; }
+  .month-extra{ font-size:0.6rem; font-weight:800; color:var(--grey-dim); }
+
   /* -------- vista giorno: timeline oraria -------- */
   .day-timeline{ position:relative; border:1px solid var(--line); border-radius:14px; background:rgba(255,255,255,0.02); overflow:hidden; }
   .dt-slot{ position:relative; display:flex; height:52px; border-top:1px solid var(--line); }
@@ -626,8 +685,21 @@
     .card-list-appt, .card-list-client{ order:1; }
 
     .appt-row{ grid-template-columns:1fr; text-align:left; }
+    /* senza questo, .done-wrap (come .badge) erediterebbe lo stretch pieno larghezza del layout impilato:
+       qui invece resta una pillola compatta della sua larghezza naturale, non un rettangolo vuoto enorme */
+    .done-wrap{ justify-self:start; }
     .week-grid{ grid-template-columns:repeat(1,1fr); }
     .dt-hour-label{ width:44px; font-size:0.64rem; }
+    /* il mese resta una vera griglia 7 colonne anche su mobile (è quello che lo rende un calendario) —
+       si stringono solo padding/font delle celle, diversamente dalla settimana che sotto 880px impila */
+    .month-cell{ min-height:48px; padding:5px 2px; gap:3px; border-radius:8px; }
+    .month-daynum{ font-size:0.7rem; }
+    .month-weekdays span{ font-size:0.58rem; }
+    .month-dot{ width:5px; height:5px; }
+    /* con 4 pulsanti (Lista/Giorno/Settimana/Mese) c'è meno spazio in orizzontale su schermi stretti:
+       lascia che vadano su due righe invece di stringersi/tagliarsi */
+    .view-toggle{ flex-wrap:wrap; }
+    .view-toggle button{ padding:6px 9px; font-size:0.7rem; }
 
     /* filtri secondari nascosti dietro un bottone, per arrivare prima alla lista */
     #ag-filters-toggle{ display:inline-flex; }
@@ -776,6 +848,7 @@
             <button type="button" class="active" data-view="lista">📋 Lista</button>
             <button type="button" data-view="giorno">🕐 Giorno</button>
             <button type="button" data-view="settimana">🗓️ Settimana</button>
+            <button type="button" data-view="mese">📆 Mese</button>
           </div>
           <span class="tb-divider"></span>
           <div class="op-filter" id="op-filter">
@@ -798,6 +871,7 @@
         <div id="ag-list"></div>
         <div id="ag-day" style="display:none;"></div>
         <div id="ag-week" style="display:none;"></div>
+        <div id="ag-month" style="display:none;"></div>
       </div>
     </section>
 
@@ -1210,21 +1284,29 @@ function renderAgenda(){
   const list = document.getElementById('ag-list');
   const week = document.getElementById('ag-week');
   const day = document.getElementById('ag-day');
+  const month = document.getElementById('ag-month');
+  if(currentView==='mese'){
+    list.style.display='none'; day.style.display='none'; week.style.display='none'; month.style.display='block';
+    renderMese();
+    document.getElementById('ag-count').textContent = `${filtraAppuntamenti().length} appuntamento/i`;
+    document.getElementById('nav-count-agenda').textContent = appuntamenti.length;
+    return;
+  }
   if(currentView==='settimana'){
-    list.style.display='none'; day.style.display='none'; week.style.display='block';
+    list.style.display='none'; day.style.display='none'; week.style.display='block'; month.style.display='none';
     renderSettimana();
     document.getElementById('ag-count').textContent = `${filtraAppuntamenti().length} appuntamento/i`;
     document.getElementById('nav-count-agenda').textContent = appuntamenti.length;
     return;
   }
   if(currentView==='giorno'){
-    list.style.display='none'; week.style.display='none'; day.style.display='block';
+    list.style.display='none'; week.style.display='none'; day.style.display='block'; month.style.display='none';
     renderGiorno();
     document.getElementById('ag-count').textContent = `${filtraAppuntamenti().length} appuntamento/i`;
     document.getElementById('nav-count-agenda').textContent = appuntamenti.length;
     return;
   }
-  list.style.display='block'; week.style.display='none'; day.style.display='none';
+  list.style.display='block'; week.style.display='none'; day.style.display='none'; month.style.display='none';
   list.innerHTML = '';
   const filtered = filtraAppuntamenti();
   const todayIso = isoDate(new Date());
@@ -1269,6 +1351,12 @@ function renderAgenda(){
               <span class="prom ${promClass(a.prom1)}" data-idx="${realIdx}" data-field="prom1" title="${a.prom1==='Da inviare'?'Clicca per aprire WhatsApp con il messaggio pronto':''}">1gg · ${a.prom1==='Da inviare'?'💬 ':''}${a.prom1}</span>
             </div>
             <span class="badge ${statoClass(a.stato)}" data-stato-idx="${realIdx}" title="Clicca per cambiare stato">${a.stato}</span>
+            <div class="done-wrap">
+              <button type="button" class="done-check ${a.fatta?'checked':''}" data-done-idx="${realIdx}" title="${a.fatta?'Cliente fatta ✓ (clicca per togliere la spunta)':'Segna cliente fatta'}">
+                <span class="done-box">${a.fatta?'✓':''}</span><span class="done-label">Fatta</span>
+              </button>
+              ${a.fatta ? `<span class="done-amount ${(a.incasso==null||a.incasso==='')?'empty':''}" data-amount-idx="${realIdx}" title="Clicca per modificare l'importo speso">${(a.incasso!=null && a.incasso!=='') ? '€'+Number(a.incasso).toFixed(2) : '+ importo'}</span>` : ''}
+            </div>
             <button class="icon-btn edit" data-edit="${realIdx}" title="Modifica">✏️</button>
             <button class="icon-btn" data-del="${realIdx}" title="Elimina">🗑️</button>
           </div>
@@ -1341,6 +1429,90 @@ function renderAgenda(){
       renderAgenda(); updateStats(); renderOggi(); salvaAgenda();
     });
   });
+  // -------- "cliente fatta" + importo speso (v4.13) --------
+  list.querySelectorAll('[data-done-idx]').forEach(el=>{
+    el.addEventListener('click', e=>{
+      e.stopPropagation();
+      const idx = +el.dataset.doneIdx;
+      const a = appuntamenti[idx];
+      if(!a) return;
+      if(!a.fatta && a.stato==='Annullato'){
+        showToast('Appuntamento annullato: non può essere segnato come fatto', 'warn');
+        return;
+      }
+      a.fatta = !a.fatta;
+      renderAgenda(); updateStats(); renderOggi(); salvaAgenda();
+      if(a.fatta){
+        // appena spuntato: riapre subito il popover per registrare quanto ha speso (facoltativo, si può "Saltare")
+        requestAnimationFrame(()=>{
+          const freshBtn = document.querySelector(`[data-done-idx="${idx}"]`);
+          if(freshBtn) apriPopoverIncasso(idx, freshBtn);
+        });
+      }
+    });
+  });
+  list.querySelectorAll('[data-amount-idx]').forEach(el=>{
+    el.addEventListener('click', e=>{
+      e.stopPropagation();
+      const idx = +el.dataset.amountIdx;
+      apriPopoverIncasso(idx, el);
+    });
+  });
+}
+
+// -------- popover "quanto ha speso" (v4.13) --------
+// Piccolo pannello flottante ancorato alla spunta/chip cliccata (stesso pattern del menu contestuale
+// da long-press). L'importo è facoltativo: si può sempre "Saltare" e inserirlo più tardi cliccando
+// di nuovo sul chip "+ importo".
+function apriPopoverIncasso(idx, anchorEl){
+  const a = appuntamenti[idx];
+  if(!a || !anchorEl) return;
+  let pop = document.getElementById('incasso-popover');
+  if(!pop){ pop = document.createElement('div'); pop.id='incasso-popover'; pop.className='incasso-popover'; document.body.appendChild(pop); }
+  pop.innerHTML = `
+    <div class="incasso-pop-head">💶 Quanto ha speso ${a.nome}?</div>
+    <input type="number" inputmode="decimal" step="0.01" min="0" class="incasso-input" id="incasso-input" placeholder="0.00" value="${a.incasso!=null?a.incasso:''}">
+    <div class="incasso-pop-actions">
+      <button type="button" class="btn ghost sm" id="incasso-skip">Salta</button>
+      <button type="button" class="btn sm" id="incasso-save">Salva</button>
+    </div>
+  `;
+  pop.dataset.idx = idx;
+  let backdrop = document.getElementById('incasso-backdrop');
+  if(!backdrop){ backdrop = document.createElement('div'); backdrop.id='incasso-backdrop'; backdrop.className='incasso-backdrop'; document.body.appendChild(backdrop); }
+  backdrop.onclick = chiudiPopoverIncasso;
+  pop.classList.add('show');
+  requestAnimationFrame(()=>{
+    const rect = anchorEl.getBoundingClientRect();
+    const pw = pop.offsetWidth, ph = pop.offsetHeight;
+    let top = rect.bottom + 8;
+    if(top + ph > window.innerHeight - 20) top = Math.max(10, rect.top - ph - 8);
+    const left = Math.max(10, Math.min(window.innerWidth - pw - 10, rect.left));
+    pop.style.top = top + 'px';
+    pop.style.left = left + 'px';
+    const input = document.getElementById('incasso-input');
+    input.focus();
+    input.select();
+  });
+  document.getElementById('incasso-save').onclick = ()=>{
+    const raw = document.getElementById('incasso-input').value;
+    const val = raw==='' ? null : Math.max(0, parseFloat(raw));
+    salvaIncasso(idx, (val==null || isNaN(val)) ? null : val);
+  };
+  document.getElementById('incasso-skip').onclick = ()=> chiudiPopoverIncasso();
+  document.getElementById('incasso-input').addEventListener('keydown', e=>{
+    if(e.key==='Enter') document.getElementById('incasso-save').click();
+    if(e.key==='Escape') chiudiPopoverIncasso();
+  });
+}
+function salvaIncasso(idx, val){
+  if(appuntamenti[idx]) appuntamenti[idx].incasso = val;
+  chiudiPopoverIncasso();
+  renderAgenda(); updateStats(); renderOggi(); salvaAgenda();
+}
+function chiudiPopoverIncasso(){
+  document.getElementById('incasso-popover')?.classList.remove('show');
+  document.getElementById('incasso-backdrop')?.remove();
 }
 
 // -------- vista settimana --------
@@ -1405,6 +1577,68 @@ function renderSettimana(){
     btn.addEventListener('click', (e)=>{
       e.stopPropagation();
       prefillNuovoAppuntamento({data: btn.dataset.addDay});
+    });
+  });
+}
+
+// -------- vista Calendario Mensile (v4.13) --------
+// monthAnchor tiene sempre il giorno fissato a 1 per evitare il classico bug di rollover di setMonth()
+// su mesi con meno giorni (es. 31 gennaio - 1 mese = 3 marzo invece di fine febbraio, se il giorno non
+// venisse normalizzato prima di ogni spostamento).
+let monthAnchor = new Date();
+monthAnchor.setDate(1);
+
+function renderMese(){
+  const el = document.getElementById('ag-month');
+  const filtered = filtraAppuntamenti();
+  const todayIso = isoDate(new Date());
+  const year = monthAnchor.getFullYear(), month = monthAnchor.getMonth();
+  const firstOfMonth = new Date(year, month, 1);
+  const startGrid = startOfWeek(firstOfMonth); // lunedì della settimana che contiene il giorno 1
+  const label = monthAnchor.toLocaleDateString('it-IT', {month:'long', year:'numeric'});
+
+  // sempre 42 celle (6 righe da 7 giorni): griglia prevedibile, non "salta" di altezza da un mese all'altro
+  const cells = [];
+  for(let i=0; i<42; i++){ const d = new Date(startGrid); d.setDate(startGrid.getDate()+i); cells.push(d); }
+
+  let html = `<div class="week-nav">
+      <button class="btn ghost sm" id="month-prev">‹ Prec.</button>
+      <button class="btn ghost sm" id="month-today">Oggi</button>
+      <button class="btn ghost sm" id="month-next">Succ. ›</button>
+      <span class="week-label" style="text-transform:capitalize;">${label}</span>
+    </div>
+    <div class="month-weekdays"><span>Lun</span><span>Mar</span><span>Mer</span><span>Gio</span><span>Ven</span><span>Sab</span><span>Dom</span></div>
+    <div class="month-grid">`;
+
+  cells.forEach(d=>{
+    const iso = isoDate(d);
+    const inMonth = d.getMonth()===month;
+    const items = filtered.filter(a=> a.data===iso && a.stato!=='Annullato');
+    const isToday = iso===todayIso;
+    let dotsHtml = '';
+    if(items.length){
+      const dots = items.slice(0,4).map(a=> `<span class="month-dot" style="background:${opColor(a.operatrice)}"></span>`).join('');
+      const extra = items.length>4 ? `<span class="month-extra">+${items.length-4}</span>` : '';
+      dotsHtml = `<div class="month-dots">${dots}${extra}</div>`;
+    }
+    html += `<button type="button" class="month-cell ${inMonth?'':'outside'} ${isToday?'today':''}" data-month-day="${iso}" title="${items.length} appuntamento/i">
+        <span class="month-daynum">${d.getDate()}</span>
+        ${dotsHtml}
+      </button>`;
+  });
+  html += `</div>`;
+  el.innerHTML = html;
+
+  document.getElementById('month-prev').addEventListener('click', ()=>{ monthAnchor.setMonth(monthAnchor.getMonth()-1); renderMese(); });
+  document.getElementById('month-next').addEventListener('click', ()=>{ monthAnchor.setMonth(monthAnchor.getMonth()+1); renderMese(); });
+  document.getElementById('month-today').addEventListener('click', ()=>{ monthAnchor = new Date(); monthAnchor.setDate(1); renderMese(); });
+  el.querySelectorAll('[data-month-day]').forEach(cell=>{
+    cell.addEventListener('click', ()=>{
+      // click su un giorno del mese: passa alla vista Giorno su quella data, come da richiesta esplicita
+      dayAnchor = new Date(cell.dataset.monthDay+'T00:00:00');
+      currentView = 'giorno';
+      document.querySelectorAll('.view-toggle button').forEach(b=> b.classList.toggle('active', b.dataset.view==='giorno'));
+      renderAgenda();
     });
   });
 }
@@ -2844,8 +3078,8 @@ function buildExportWorkbook(){
   const now = new Date().toLocaleString('it-IT');
   const esito = a => a.cancelSeverity==='severe' ? 'Disdetta ultimo minuto (<24h)' : a.cancelSeverity==='warn' ? 'Preavviso breve (24-48h)' : '';
   const aoaApp = [
-    ['Data','Ora','Operatrice','Nome','Cognome','Telefono','Servizio','Note','Esito disdetta','Esportato il'],
-    ...appuntamenti.map(a=>[fmtData(a.data),a.ora,a.operatrice||'',a.nome,a.cognome,a.tel,a.servizio,a.note,esito(a),now])
+    ['Data','Ora','Operatrice','Nome','Cognome','Telefono','Servizio','Note','Esito disdetta','Fatta','Incasso €','Esportato il'],
+    ...appuntamenti.map(a=>[fmtData(a.data),a.ora,a.operatrice||'',a.nome,a.cognome,a.tel,a.servizio,a.note,esito(a),a.fatta?'Sì':'No',(a.incasso!=null?a.incasso:''),now])
   ];
   const ultimoTrattamento = c => {
     const list = (c.trattamenti||[]).slice().sort((a,b)=> b.data.localeCompare(a.data));
@@ -2969,7 +3203,7 @@ document.getElementById('mobile-fab').addEventListener('click', ()=>{
     if(!isMobile() || e.pointerType==='mouse') return;
     const swipeEl = e.target.closest('.appt-swipe');
     if(!swipeEl) return;
-    if(e.target.closest('.prom, .badge, [data-edit], [data-del], [data-stato-idx], [data-swipe-act]')) return;
+    if(e.target.closest('.prom, .badge, [data-edit], [data-del], [data-stato-idx], [data-swipe-act], [data-done-idx], [data-amount-idx]')) return;
     dragEl = swipeEl; startX=e.clientX; startY=e.clientY; dx=0; dragging=false; axisLocked=null;
     longPressTimer = setTimeout(()=>{
       if(!dragging){ apriMenuContestuale(swipeEl); dragEl=null; }
